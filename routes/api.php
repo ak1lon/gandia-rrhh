@@ -9,5 +9,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    Route::post('/fcm-token', [FcmTokenController::class, 'store']);
+    //Route::post('/fcm-token', [FcmTokenController::class, 'store']);
 });
+
+Route::post('/fcm-token', [FcmTokenController::class, 'store']);
