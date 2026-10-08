@@ -11,9 +11,10 @@ class FcmTokenController extends Controller
     {
         $request->validate([
             'fcm_token' => 'required|string',
+            'email' => 'required|string',
         ]);
 
-        $user = $request->user();
+        $user = User::where('email', $request->email)->first();
         
         if ($user) {
             $user->update([
