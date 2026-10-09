@@ -13,3 +13,4 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::post('/fcm-token', [FcmTokenController::class, 'store']);
+Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
