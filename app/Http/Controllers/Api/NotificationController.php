@@ -22,7 +22,7 @@ class NotificationController extends Controller
 
         $notifications = PushNotification::where('status', 'Enviado correctamente')
             ->whereJsonContains('recipients', (string) $user->id)
-            ->select('title', 'body as contenido', 'created_at as fecha')
+            ->select('title', 'body', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
