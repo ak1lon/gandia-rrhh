@@ -14,8 +14,14 @@ class NotificationController extends Controller
             'email' => 'required|email',
         ]);
 
-        $notifications = PushNotification::where('status', 'enviado')
-            ->whereJsonContains('recipients', $request->email)
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([]);
+        }
+
+        $notifications = PushNotification::where('status', 'Enviado correctamente')
+            ->whereJsonContains('recipients', (string) $user->id)
             ->select('title', 'body as contenido', 'created_at as fecha')
             ->orderBy('created_at', 'desc')
             ->get();
