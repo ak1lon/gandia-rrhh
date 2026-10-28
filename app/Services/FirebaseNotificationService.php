@@ -19,16 +19,24 @@ class FirebaseNotificationService
      * @param string $token
      * @param string $title
      * @param string $body
+     * @param string|null $imageUrl
      * @param array $data
      * @return array
      */
-    public function sendToDevice(string $token, string $title, string $body, array $data = [])
+    public function sendToDevice(string $token, string $title, string $body, ?string $imageUrl = null, array $data = [])
     {
-        $notification = Notification::create($title, $body);
+        $notification = Notification::create($title, $body, $imageUrl);
+
+        if ($imageUrl && !isset($data['image'])) {
+            $data['image'] = $imageUrl;
+        }
+
+        // Aseguramos que todos los valores en $data sean strings para compatibilidad FCM
+        $dataFormatted = array_map(fn($val) => is_scalar($val) ? (string)$val : json_encode($val), $data);
 
         $message = CloudMessage::new()
             ->withNotification($notification)
-            ->withData($data)
+            ->withData($dataFormatted)
             ->toToken($token);
 
         try {

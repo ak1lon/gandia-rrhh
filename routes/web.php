@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     if (Auth::check()) {
-        return redirect('/dashboard');
+        return redirect()->route('cola-revision.index');
     }
     return view('login');
 })->name('login');
@@ -18,7 +18,7 @@ Route::post('/login', function (Request $request) {
 
     if (Auth::attempt($credentials)) {
         $request->session()->regenerate();
-        return redirect()->intended('/dashboard');
+        return redirect()->intended(route('cola-revision.index'));
     }
 
     return back()->withErrors([
@@ -34,7 +34,7 @@ Route::post('/logout', function (Request $request) {
 })->name('logout');
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return redirect()->route('cola-revision.index');
 })->middleware('auth');
 
 Route::middleware('auth')->group(function () {
