@@ -37,5 +37,7 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('123456'),
             'role' => 'empleado',
         ]);
+
+        $this->call(LegajoSeeder::class);
     }
 }
