@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(LegajoSeeder::class);
+        $this->call(LegajoExtraSeeder::class);
         $this->call(SincronizarCargoSeccionUsuariosSeeder::class);
     }
 }
