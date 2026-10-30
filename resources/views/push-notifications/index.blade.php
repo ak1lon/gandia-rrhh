@@ -236,9 +236,15 @@
                         </div>
 
                         <button type="submit" id="btnSubmitNotification"
-                            class="w-full bg-[#b3493b] hover:bg-[#9d3f32] text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2">
-                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                            <span>Enviar Notificación Push (<span id="submitCountLabel">0</span>)</span>
+                            class="w-full bg-[#b3493b] hover:bg-[#9d3f32] disabled:opacity-70 disabled:cursor-not-allowed text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2">
+                            <span id="submitIconIdle" class="inline-flex items-center">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            </span>
+                            <svg id="submitSpinner" class="hidden animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span id="submitBtnText">Enviar Notificación Push (<span id="submitCountLabel">0</span>)</span>
                         </button>
                     </div>
                 </div>
@@ -572,13 +578,24 @@ document.addEventListener('DOMContentLoaded', function() {
         checkRows(isVisible);
     });
 
-    // Validación antes del envío
+    // Validación antes del envío y estado de carga
     document.getElementById('notificationForm').addEventListener('submit', function(e) {
         const checkedCount = document.querySelectorAll('.recipient-checkbox:checked').length;
         if (checkedCount === 0) {
             e.preventDefault();
             alert('Debes seleccionar al menos un empleado destinatario antes de enviar la notificación.');
+            return;
         }
+
+        const btnSubmit = document.getElementById('btnSubmitNotification');
+        const iconIdle = document.getElementById('submitIconIdle');
+        const spinner = document.getElementById('submitSpinner');
+        const btnText = document.getElementById('submitBtnText');
+
+        btnSubmit.disabled = true;
+        iconIdle.classList.add('hidden');
+        spinner.classList.remove('hidden');
+        btnText.textContent = 'Enviando notificación...';
     });
 
     updateSelectedCount();
