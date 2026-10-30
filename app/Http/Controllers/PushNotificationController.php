@@ -144,7 +144,8 @@ class PushNotificationController extends Controller
                 $title,
                 $validated['body'],
                 $fullImageUrl,
-                $payloadData
+                $payloadData,
+                (string) $notification->priority
             );
 
             $responses[$user->id] = $response;
