@@ -209,6 +209,9 @@
                                     </div>
                                     <div class="flex-1 px-2 truncate text-[#191f26] font-medium text-[11px]">
                                         {{ $employee->name }}
+                                        @if(empty($employee->fcm_token))
+                                            <span class="ml-1 inline-block bg-[#fff8e6] text-[#b47a09] border border-[#fcefc2] text-[9px] font-bold px-1.5 rounded-full align-middle">Sin app</span>
+                                        @endif
                                         <span class="block text-[9px] text-[#707680] font-normal truncate">
                                             {{ $employee->cargo_sap ?? 'Sin cargo' }} &bull; {{ $employee->seccion ?? 'General' }}
                                         </span>
@@ -484,76 +487,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     highlightActiveFilterMode();
 
+    function isVisible(row) {
+        return row.style.display !== 'none';
+    }
+
+    function checkRows(predicate, checked = true) {
+        employeeRows.forEach(row => {
+            if (predicate(row)) {
+                const cb = row.querySelector('.recipient-checkbox');
+                if (cb) cb.checked = checked;
+            }
+        });
+        updateSelectedCount();
+    }
+
     // Checkbox "Todos los Cargos Sap"
     const checkAllCargos = document.getElementById('checkAllCargos');
     const selectCargo = document.getElementById('selectCargo');
     checkAllCargos.addEventListener('change', function() {
-        if (this.checked) {
-            selectCargo.value = '';
-            checkboxes.forEach(cb => cb.checked = true);
-        } else {
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-        updateSelectedCount();
+        selectCargo.value = '';
+        checkRows(row => (row.dataset.cargo || '') !== '', this.checked);
     });
 
     selectCargo.addEventListener('change', function() {
-        const val = this.value;
         checkAllCargos.checked = false;
-        if (!val) return;
-        employeeRows.forEach(row => {
-            const cb = row.querySelector('.recipient-checkbox');
-            const cargo = row.dataset.cargo;
-            if (cargo === val) {
-                cb.checked = true;
-                row.classList.remove('hidden');
-            } else {
-                cb.checked = false;
-            }
-        });
-        updateSelectedCount();
+        const val = this.value;
+        if (val) checkRows(row => row.dataset.cargo === val);
     });
 
     // Checkbox "Todas las Secciones"
     const checkAllSecciones = document.getElementById('checkAllSecciones');
     const selectSeccion = document.getElementById('selectSeccion');
     checkAllSecciones.addEventListener('change', function() {
-        if (this.checked) {
-            selectSeccion.value = '';
-            checkboxes.forEach(cb => cb.checked = true);
-        } else {
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-        updateSelectedCount();
+        selectSeccion.value = '';
+        checkRows(row => (row.dataset.seccion || '') !== '', this.checked);
     });
 
     selectSeccion.addEventListener('change', function() {
-        const val = this.value;
         checkAllSecciones.checked = false;
-        if (!val) return;
-        employeeRows.forEach(row => {
-            const cb = row.querySelector('.recipient-checkbox');
-            const seccion = row.dataset.seccion;
-            if (seccion === val) {
-                cb.checked = true;
-                row.classList.remove('hidden');
-            } else {
-                cb.checked = false;
-            }
-        });
-        updateSelectedCount();
+        const val = this.value;
+        if (val) checkRows(row => row.dataset.seccion === val);
     });
 
     // Checkbox "Todos los Legajos" y búsqueda rápida
     const checkAllLegajos = document.getElementById('checkAllLegajos');
     const inputSearchLegajo = document.getElementById('inputSearchLegajo');
     checkAllLegajos.addEventListener('change', function() {
-        checkboxes.forEach(cb => cb.checked = this.checked);
-        updateSelectedCount();
+        checkRows(isVisible, this.checked);
     });
 
     inputSearchLegajo.addEventListener('input', function() {
         const q = this.value.toLowerCase().trim();
+        checkAllLegajos.checked = false;
         employeeRows.forEach(row => {
             const legajo = (row.dataset.legajo || '').toLowerCase();
             const name = (row.dataset.name || '').toLowerCase();
@@ -561,6 +546,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const match = legajo.includes(q) || name.includes(q) || cargo.includes(q);
             row.style.display = match ? 'flex' : 'none';
         });
+    });
+
+    document.getElementById('btnFilterLink').addEventListener('click', function() {
+        const activeMode = document.querySelector('input[name="filterMode"]:checked').value;
+        if (activeMode === 'cargo' && selectCargo.value) {
+            checkRows(row => row.dataset.cargo === selectCargo.value);
+        } else if (activeMode === 'seccion' && selectSeccion.value) {
+            checkRows(row => row.dataset.seccion === selectSeccion.value);
+        } else if (activeMode === 'legajo') {
+            checkRows(isVisible);
+        }
     });
 
     // Botones de acción rápida: Limpiar y Seleccionar todos visibles
@@ -573,13 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('btnSelectAllVisible').addEventListener('click', function() {
-        employeeRows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const cb = row.querySelector('.recipient-checkbox');
-                if (cb) cb.checked = true;
-            }
-        });
-        updateSelectedCount();
+        checkRows(isVisible);
     });
 
     // Validación antes del envío

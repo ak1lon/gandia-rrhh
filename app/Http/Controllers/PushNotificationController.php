@@ -36,15 +36,17 @@ class PushNotificationController extends Controller
 
         $notifications = $query->orderBy('id', 'desc')->get();
 
-        $employees = User::orderBy('name')->get();
+        $employees = User::where('role', 'empleado')->orderBy('name')->get();
 
-        $cargos = User::whereNotNull('cargo_sap')
+        $cargos = User::where('role', 'empleado')
+            ->whereNotNull('cargo_sap')
             ->where('cargo_sap', '!=', '')
             ->distinct()
             ->orderBy('cargo_sap')
             ->pluck('cargo_sap');
 
-        $secciones = User::whereNotNull('seccion')
+        $secciones = User::where('role', 'empleado')
+            ->whereNotNull('seccion')
             ->where('seccion', '!=', '')
             ->distinct()
             ->orderBy('seccion')
@@ -132,6 +134,9 @@ class PushNotificationController extends Controller
         if ($fullImageUrl) {
             $payloadData['image'] = $fullImageUrl;
         }
+
+        $responses = [];
+        $hasErrors = false;
 
         foreach ($users as $user) {
             $response = $firebaseService->sendToDevice(

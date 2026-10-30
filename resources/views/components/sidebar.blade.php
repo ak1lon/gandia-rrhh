@@ -14,9 +14,14 @@
 
         <nav class="space-y-1 text-sm font-medium">
 
-            <a href="#" class="flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-[#28323c] text-white font-semibold transition">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3.5 px-4 py-2.5 rounded-xl {{ request()->routeIs('dashboard') ? 'bg-[#28323c] text-white font-semibold' : 'hover:text-white hover:bg-[#222b34]' }} transition">
                 <i data-lucide="layout-grid" class="w-4 h-4"></i>
                 <span>Tablero</span>
+            </a>
+
+            <a href="{{ route('cola-revision.index') }}" class="flex items-center gap-3.5 px-4 py-2.5 rounded-xl {{ request()->routeIs('cola-revision.*') ? 'bg-[#28323c] text-white font-semibold' : 'hover:text-white hover:bg-[#222b34]' }} transition">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                <span>Notificaciones</span>
             </a>
 
             <a href="#" class="flex items-center gap-3.5 px-4 py-2.5 rounded-xl hover:text-white hover:bg-[#222b34] transition">
@@ -29,7 +34,7 @@
                 <span>Personas</span>
             </a>
 
-            <a href="{{ route('cola-revision.index') }}" class="flex items-center justify-between px-4 py-2.5 rounded-xl {{ request()->routeIs('cola-revision.index') ? 'bg-[#28323c] text-white font-semibold' : 'hover:text-white hover:bg-[#222b34]' }} transition">
+            <a href="#" class="flex items-center justify-between px-4 py-2.5 rounded-xl hover:text-white hover:bg-[#222b34] transition">
                 <div class="flex items-center gap-3.5">
                     <i data-lucide="shield-alert" class="w-4 h-4"></i>
                     <span>Cola de revisión</span>

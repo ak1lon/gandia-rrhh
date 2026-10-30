@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     if (Auth::check()) {
-        return redirect()->route('cola-revision.index');
+        return redirect()->route('dashboard');
     }
     return view('login');
 })->name('login');
@@ -18,7 +18,7 @@ Route::post('/login', function (Request $request) {
 
     if (Auth::attempt($credentials)) {
         $request->session()->regenerate();
-        return redirect()->intended(route('cola-revision.index'));
+        return redirect()->intended(route('dashboard'));
     }
 
     return back()->withErrors([
@@ -34,8 +34,8 @@ Route::post('/logout', function (Request $request) {
 })->name('logout');
 
 Route::get('/dashboard', function () {
-    return redirect()->route('cola-revision.index');
-})->middleware('auth');
+    return view('dashboard');
+})->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/cola-revision', [\App\Http\Controllers\PushNotificationController::class, 'index'])->name('cola-revision.index');

@@ -20,8 +20,8 @@ class NotificationController extends Controller
             return response()->json([]);
         }
 
-        $notifications = PushNotification::where('status', 'Enviado correctamente')
-            ->whereJsonContains('recipients', (string) $user->id)
+        $notifications = PushNotification::whereIn('status', ['Enviado correctamente', 'Enviado con errores'])
+            ->whereJsonContains('recipients', (int) $user->id)
             ->select('title', 'body', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();

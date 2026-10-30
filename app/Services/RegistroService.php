@@ -76,6 +76,8 @@ class RegistroService
                 'role' => 'empleado',
                 'legajo' => (string) $legajo->leg_numero,
                 'leg_numero' => $legajo->leg_numero,
+                'cargo_sap' => $legajo->car_codigo,
+                'seccion' => $legajo->sec_codigo,
                 'dni' => $registro->dni,
                 'celular' => $registro->telefono,
             ]);
