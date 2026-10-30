@@ -22,10 +22,25 @@ class LegajoSeeder extends Seeder
             [1010, 'Díaz', 'Florencia', '38999000', '27389990007', '1995-07-27', 2, 'Moreno', '150', '5885', 'Mina Clavero', 'X', '+54 9 3544 48-0011', '2021-05-03', '2025-12-31'],
         ];
 
+        $cargoSeccion = [
+            1001 => ['CAJ', 'VEN'],
+            1002 => ['CAJ', 'VEN'],
+            1003 => ['REP', 'DEP'],
+            1004 => ['CAR', 'CAR'],
+            1005 => ['REP', 'DEP'],
+            1006 => ['CAJ', 'VEN'],
+            1007 => ['ADM', 'ADM'],
+            1008 => ['CAR', 'CAR'],
+            1009 => ['MAN', 'MAN'],
+            1010 => ['SUP', 'VEN'],
+        ];
+
         foreach ($legajos as [$numero, $apellido, $nombre, $dni, $cuil, $fecnac, $sexo, $domic, $puerta, $codpos, $locali, $prov, $celular, $fecing, $fecegr]) {
             Legajo::updateOrCreate(
                 ['leg_numero' => $numero],
                 [
+                    'car_codigo' => $cargoSeccion[$numero][0],
+                    'sec_codigo' => $cargoSeccion[$numero][1],
                     'leg_apellido' => $apellido,
                     'leg_nombre' => $nombre,
                     'leg_tipodoc' => 1,

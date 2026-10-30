@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Legajo;
 use App\Models\Registro;
 use App\Models\User;
+use App\Support\CatalogoBejerman;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -76,8 +77,8 @@ class RegistroService
                 'role' => 'empleado',
                 'legajo' => (string) $legajo->leg_numero,
                 'leg_numero' => $legajo->leg_numero,
-                'cargo_sap' => $legajo->car_codigo,
-                'seccion' => $legajo->sec_codigo,
+                'cargo_sap' => CatalogoBejerman::cargo($legajo->car_codigo),
+                'seccion' => CatalogoBejerman::seccion($legajo->sec_codigo),
                 'dni' => $registro->dni,
                 'celular' => $registro->telefono,
             ]);
