@@ -14,6 +14,9 @@ Route::prefix('v1/registro')->middleware('throttle:20,1')->group(function () {
     Route::post('/verificar', [RegistroController::class, 'verificar']);
     Route::post('/iniciar', [RegistroController::class, 'iniciar']);
     Route::put('/{registro}/datos-personales', [RegistroController::class, 'datosPersonales'])->whereNumber('registro');
+    Route::post('/{registro}/verificar-dni', [RegistroController::class, 'verificarDocumento'])->whereNumber('registro');
+    Route::post('/{registro}/dni', [RegistroController::class, 'verificarDocumento'])->whereNumber('registro');
+    Route::get('/{registro}/dni/estado', [RegistroController::class, 'estadoDni'])->whereNumber('registro');
     Route::post('/{registro}/confirmar', [RegistroController::class, 'confirmar'])->whereNumber('registro');
 });
 

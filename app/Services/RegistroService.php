@@ -6,11 +6,13 @@ use App\Models\Legajo;
 use App\Models\Registro;
 use App\Models\User;
 use App\Support\CatalogoBejerman;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RegistroService
 {
+    public function __construct(private readonly DiditService $diditService) {}
     public function buscarLegajo(int $legNumero): ?Legajo
     {
         return Legajo::query()->find($legNumero);
@@ -62,11 +64,68 @@ class RegistroService
         return $registro;
     }
 
+    public function verificarDocumentoDni(Registro $registro, UploadedFile $frente, UploadedFile $dorso): Registro
+    {
+        $this->asegurarEnCurso($registro);
+
+        $dir = "registros/{$registro->id}";
+        $frentePath = $frente->store($dir, 'local');
+        $dorsoPath = $dorso->store($dir, 'local');
+
+        $payload = $this->diditService->verificarDocumento($frente, $dorso, "registro:{$registro->id}:legajo:{$registro->leg_numero}");
+
+        $verificacion = is_array($payload['id_verification'] ?? null) ? $payload['id_verification'] : [];
+        $status = (string) ($verificacion['status'] ?? 'Unknown');
+        $dniExtraido = $this->normalizarDni((string) ($verificacion['document_number'] ?? $verificacion['personal_number'] ?? ''));
+
+        $registro->fill([
+            'dni_frente_path' => $frentePath ?: null,
+            'dni_dorso_path' => $dorsoPath ?: null,
+            'didit_request_id' => isset($payload['request_id']) ? (string) $payload['request_id'] : null,
+            'didit_status' => $status,
+            'didit_payload' => $payload,
+        ])->save();
+
+        if ($status !== 'Approved') {
+            throw ValidationException::withMessages([
+                'dni_frente' => 'El documento no pudo ser validado por Didit. Asegurate de que ambas caras sean legibles y sin reflejos.',
+            ]);
+        }
+
+        if ($dniExtraido === '' || ! hash_equals($this->normalizarDni($registro->dni), $dniExtraido)) {
+            throw ValidationException::withMessages([
+                'dni_frente' => 'El número de DNI de la foto no coincide con el titular del legajo.',
+            ]);
+        }
+
+        $registro->forceFill(['paso_actual' => 4])->save();
+
+        return $registro;
+    }
+
+    public function estadoDni(Registro $registro): array
+    {
+        return [
+            'registro_id' => $registro->id,
+            'paso_actual' => $registro->paso_actual,
+            'didit_status' => $registro->didit_status,
+            'verificado' => $registro->didit_status === 'Approved',
+            'dni_frente_cargado' => ! empty($registro->dni_frente_path),
+            'dni_dorso_cargado' => ! empty($registro->dni_dorso_path),
+        ];
+    }
+
     public function confirmar(Registro $registro, string $email, string $password): User
     {
         return DB::transaction(function () use ($registro, $email, $password): User {
             $registro = Registro::query()->lockForUpdate()->findOrFail($registro->getKey());
             $this->asegurarEnCurso($registro);
+
+            if ($registro->didit_status !== 'Approved') {
+                throw ValidationException::withMessages([
+                    'dni' => 'La validación de identidad con DNI debe estar aprobada antes de confirmar el registro.',
+                ]);
+            }
 
             $legajo = $this->legajoHabilitado($registro->leg_numero);
 

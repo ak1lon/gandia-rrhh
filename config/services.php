@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'didit' => [
+        'app_id' => env('DIDIT_APP_ID'),
+        'workflow_id' => env('DIDIT_WORKFLOW_ID'),
+        'api_key' => env('DIDIT_API_KEY'),
+        'base_url' => env('DIDIT_BASE_URL', 'https://verification.didit.me/v3'),
+    ],
+
 ];

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Registro\ConfirmarRegistroRequest;
 use App\Http\Requests\Registro\DatosPersonalesRequest;
 use App\Http\Requests\Registro\IniciarRegistroRequest;
+use App\Http\Requests\Registro\VerificarDocumentoRequest;
 use App\Http\Requests\Registro\VerificarLegajoRequest;
 use App\Models\Legajo;
 use App\Models\Registro;
@@ -50,6 +51,27 @@ class RegistroController extends Controller
         $registro = $this->registroService->guardarDatosPersonales($registro, $request->validated());
 
         return response()->json(['paso_actual' => $registro->paso_actual]);
+    }
+
+    public function verificarDocumento(VerificarDocumentoRequest $request, Registro $registro): JsonResponse
+    {
+        $registro = $this->registroService->verificarDocumentoDni(
+            $registro,
+            $request->file('dni_frente'),
+            $request->file('dni_dorso'),
+        );
+
+        return response()->json([
+            'paso_actual' => $registro->paso_actual,
+            'verificado' => true,
+            'dni_ocr_validado' => true,
+            'didit_status' => $registro->didit_status,
+        ]);
+    }
+
+    public function estadoDni(Registro $registro): JsonResponse
+    {
+        return response()->json($this->registroService->estadoDni($registro));
     }
 
     public function confirmar(ConfirmarRegistroRequest $request, Registro $registro): JsonResponse

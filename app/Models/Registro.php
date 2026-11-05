@@ -21,6 +21,11 @@ class Registro extends Model
         'provincia',
         'telefono',
         'fecha_nacimiento',
+        'dni_frente_path',
+        'dni_dorso_path',
+        'didit_request_id',
+        'didit_status',
+        'didit_payload',
         'paso_actual',
         'estado',
         'user_id',
@@ -32,6 +37,7 @@ class Registro extends Model
             'leg_numero' => 'integer',
             'paso_actual' => 'integer',
             'fecha_nacimiento' => 'date',
+            'didit_payload' => 'array',
         ];
     }
 
