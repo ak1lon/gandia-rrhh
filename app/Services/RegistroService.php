@@ -2,17 +2,27 @@
 
 namespace App\Services;
 
+use App\Exceptions\DiditUnavailableException;
+use App\Exceptions\DiditVerificationException;
 use App\Models\Legajo;
 use App\Models\Registro;
 use App\Models\User;
 use App\Support\CatalogoBejerman;
+use App\Support\DiditMotivoMapper;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class RegistroService
 {
-    public function __construct(private readonly DiditService $diditService) {}
+    public function __construct(
+        private readonly DiditService $diditService,
+        private readonly DiditMotivoMapper $motivoMapper,
+    ) {}
+
     public function buscarLegajo(int $legNumero): ?Legajo
     {
         return Legajo::query()->find($legNumero);
@@ -68,48 +78,138 @@ class RegistroService
     {
         $this->asegurarEnCurso($registro);
 
+        $rateKey = "didit-dni:{$registro->id}";
+        $maxAttempts = (int) config('services.didit.rate_limit_per_hour', 5);
+
+        if (RateLimiter::tooManyAttempts($rateKey, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            $minutos = max(1, (int) ceil($seconds / 60));
+
+            throw new HttpResponseException(response()->json([
+                'message' => "Superaste el límite de {$maxAttempts} intentos de verificación por hora. Volvé a intentar en {$minutos} min.",
+                'verificado' => false,
+                'motivo' => 'limite_intentos',
+                'reintentar' => false,
+                'retry_after_seconds' => $seconds,
+            ], 429));
+        }
+
         $dir = "registros/{$registro->id}";
         $frentePath = $frente->store($dir, 'local');
         $dorsoPath = $dorso->store($dir, 'local');
 
-        $payload = $this->diditService->verificarDocumento($frente, $dorso, "registro:{$registro->id}:legajo:{$registro->leg_numero}");
+        try {
+            $resultado = $this->diditService->verificarDocumento(
+                $frente,
+                $dorso,
+                "registro:{$registro->id}:legajo:{$registro->leg_numero}",
+            );
+        } catch (DiditUnavailableException $e) {
+            Log::warning('Didit no disponible al verificar DNI', [
+                'registro_id' => $registro->id,
+                'mensaje' => $e->getMessage(),
+            ]);
 
-        $verificacion = is_array($payload['id_verification'] ?? null) ? $payload['id_verification'] : [];
-        $status = (string) ($verificacion['status'] ?? 'Unknown');
-        $dniExtraido = $this->normalizarDni((string) ($verificacion['document_number'] ?? $verificacion['personal_number'] ?? ''));
+            throw new HttpResponseException(response()->json([
+                'message' => $e->getMessage(),
+                'errors' => ['dni_frente' => [$e->getMessage()]],
+                'verificado' => false,
+                'motivo' => 'servicio_no_disponible',
+                'reintentar' => true,
+            ], 503));
+        }
+
+        RateLimiter::hit($rateKey, 3600);
+
+        $status = $resultado['status'];
+        $calidad = [
+            'frente' => $resultado['calidad_frente'],
+            'dorso' => $resultado['calidad_dorso'],
+        ];
 
         $registro->fill([
             'dni_frente_path' => $frentePath ?: null,
             'dni_dorso_path' => $dorsoPath ?: null,
-            'didit_request_id' => isset($payload['request_id']) ? (string) $payload['request_id'] : null,
+            'didit_request_id' => $resultado['request_id'],
             'didit_status' => $status,
-            'didit_payload' => $payload,
+            'didit_payload' => $resultado['raw'],
         ])->save();
 
+        Log::info('Resultado de verificación de DNI con Didit', [
+            'registro_id' => $registro->id,
+            'request_id' => $resultado['request_id'],
+            'status' => $status,
+            'http_status' => $resultado['http_status'],
+            'error_code' => $resultado['error_code'],
+            'warnings' => array_map(
+                static fn (array $w): array => [
+                    'risk' => $w['risk'],
+                    'log_type' => $w['log_type'],
+                    'short_description' => $w['short_description'],
+                ],
+                $resultado['warnings'],
+            ),
+            'calidad_frente' => $resultado['calidad_frente'],
+            'calidad_dorso' => $resultado['calidad_dorso'],
+        ]);
+
+        if ($status === 'In Review') {
+            $registro->forceFill(['estado' => Registro::ESTADO_REVISION_PENDIENTE])->save();
+
+            throw new DiditVerificationException(
+                motivo: DiditMotivoMapper::MOTIVO_REVISION_MANUAL,
+                campo: 'ambos',
+                mensajes: ['Tu documento quedó pendiente de revisión manual por RRHH. Te notificaremos cuando sea validado.'],
+                calidad: $calidad,
+                reintentar: false,
+                accion: 'esperar_revision',
+            );
+        }
+
         if ($status !== 'Approved') {
-            throw ValidationException::withMessages([
-                'dni_frente' => 'El documento no pudo ser validado por Didit. Asegurate de que ambas caras sean legibles y sin reflejos.',
-            ]);
+            $mapeado = $this->motivoMapper->mapear($resultado);
+
+            throw new DiditVerificationException(
+                motivo: $mapeado['motivo'],
+                campo: $mapeado['campo'],
+                mensajes: $mapeado['mensajes'],
+                calidad: $mapeado['calidad'],
+                reintentar: true,
+                accion: $mapeado['accion'],
+            );
         }
 
+        $dniExtraido = $this->normalizarDni($resultado['numero_documento']);
         if ($dniExtraido === '' || ! hash_equals($this->normalizarDni($registro->dni), $dniExtraido)) {
-            throw ValidationException::withMessages([
-                'dni_frente' => 'El número de DNI de la foto no coincide con el titular del legajo.',
-            ]);
+            throw new DiditVerificationException(
+                motivo: DiditMotivoMapper::MOTIVO_DNI_NO_COINCIDE,
+                campo: 'dni_frente',
+                mensajes: ['El número de DNI de la foto no coincide con el titular del legajo.'],
+                calidad: $calidad,
+                reintentar: true,
+                accion: 'verificar_titular',
+            );
         }
 
-        $registro->forceFill(['paso_actual' => 4])->save();
+        $registro->forceFill([
+            'estado' => Registro::ESTADO_EN_CURSO,
+            'paso_actual' => 4,
+        ])->save();
 
         return $registro;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function estadoDni(Registro $registro): array
     {
         return [
             'registro_id' => $registro->id,
             'paso_actual' => $registro->paso_actual,
+            'estado' => $registro->estado,
             'didit_status' => $registro->didit_status,
-            'verificado' => $registro->didit_status === 'Approved',
+            'verificado' => $registro->didit_status === 'Approved' && $registro->paso_actual >= 4,
             'dni_frente_cargado' => ! empty($registro->dni_frente_path),
             'dni_dorso_cargado' => ! empty($registro->dni_dorso_path),
         ];
@@ -174,4 +274,3 @@ class RegistroService
         }
     }
 }
-

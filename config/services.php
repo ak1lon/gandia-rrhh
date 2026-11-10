@@ -40,6 +40,15 @@ return [
         'workflow_id' => env('DIDIT_WORKFLOW_ID'),
         'api_key' => env('DIDIT_API_KEY'),
         'base_url' => env('DIDIT_BASE_URL', 'https://verification.didit.me/v3'),
+        'timeout' => (int) env('DIDIT_TIMEOUT', 30),
+        'connect_timeout' => (int) env('DIDIT_CONNECT_TIMEOUT', 10),
+        'rate_limit_per_hour' => (int) env('DIDIT_RATE_LIMIT_PER_HOUR', 5),
+        'quality_thresholds' => [
+            'focus' => (float) env('DIDIT_THRESHOLD_FOCUS', 60),
+            'brightness' => (float) env('DIDIT_THRESHOLD_BRIGHTNESS', 50),
+            'resolution' => (float) env('DIDIT_THRESHOLD_RESOLUTION', 60),
+            'overall' => (float) env('DIDIT_THRESHOLD_OVERALL', 60),
+        ],
     ],
 
 ];

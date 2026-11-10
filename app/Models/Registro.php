@@ -9,7 +9,15 @@ class Registro extends Model
 {
     public const ESTADO_EN_CURSO = 'en_curso';
 
+    public const ESTADO_REVISION_PENDIENTE = 'revision_pendiente';
+
     public const ESTADO_COMPLETADO = 'completado';
+
+    protected $hidden = [
+        'didit_payload',
+        'dni_frente_path',
+        'dni_dorso_path',
+    ];
 
     protected $fillable = [
         'leg_numero',
@@ -53,7 +61,7 @@ class Registro extends Model
 
     public function estaEnCurso(): bool
     {
-        return $this->estado === self::ESTADO_EN_CURSO;
+        return in_array($this->estado, [self::ESTADO_EN_CURSO, self::ESTADO_REVISION_PENDIENTE], true);
     }
 }
 
