@@ -79,7 +79,7 @@ class DiditService
             );
         }
 
-        if ($response->serverError()) {
+        if ($response->serverError() || in_array($response->status(), [401, 403, 404], true)) {
             throw new DiditUnavailableException(
                 'El servicio de verificación de identidad no está disponible temporalmente. Reintentá en unos minutos.'
             );

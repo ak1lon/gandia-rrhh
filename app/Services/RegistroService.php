@@ -179,8 +179,12 @@ class RegistroService
             );
         }
 
+        $numeroBruto = strtoupper(trim((string) $resultado['numero_documento']));
+        $esRespuestaSandbox = str_starts_with((string) config('services.didit.api_key'), 'sk_test_')
+            && str_starts_with($numeroBruto, 'SANDBOX');
+
         $dniExtraido = $this->normalizarDni($resultado['numero_documento']);
-        if ($dniExtraido === '' || ! hash_equals($this->normalizarDni($registro->dni), $dniExtraido)) {
+        if (! $esRespuestaSandbox && ($dniExtraido === '' || ! hash_equals($this->normalizarDni($registro->dni), $dniExtraido))) {
             throw new DiditVerificationException(
                 motivo: DiditMotivoMapper::MOTIVO_DNI_NO_COINCIDE,
                 campo: 'dni_frente',

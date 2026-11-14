@@ -11,6 +11,16 @@ class VerificarDocumentoRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        foreach ($this->allFiles() as $key => $file) {
+            $trimmed = trim((string) $key, " \t\n\r\0\x0B_");
+            if ($trimmed !== $key && ! $this->hasFile($trimmed)) {
+                $this->files->set($trimmed, $file);
+            }
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */

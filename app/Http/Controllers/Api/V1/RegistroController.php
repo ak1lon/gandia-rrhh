@@ -55,6 +55,7 @@ class RegistroController extends Controller
 
     public function verificarDocumento(VerificarDocumentoRequest $request, Registro $registro): JsonResponse
     {
+        \Log::info(json_encode($request));
         $registro = $this->registroService->verificarDocumentoDni(
             $registro,
             $request->file('dni_frente'),
