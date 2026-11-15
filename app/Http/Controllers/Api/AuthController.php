@@ -50,6 +50,8 @@ class AuthController extends Controller
                 'seccion' => $user->seccion ?? '',
                 'domicilio' => $domicilio ?? '',
                 'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '',
+                'tiene_rubrica' => ! empty($user->rubrica_path),
+                'tiene_clave_firma' => ! empty($user->clave_firma),
             ],
         ]);
     }

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FcmTokenController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\V1\RegistroController;
 use App\Models\Legajo;
 use App\Models\Registro;
@@ -24,6 +25,8 @@ Route::prefix('v1/registro')->middleware('throttle:20,1')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/fcm-token', [FcmTokenController::class, 'store']);
+    Route::put('/user/profile', [ProfileController::class, 'update']);
+    Route::post('/user/rubrica', [ProfileController::class, 'updateRubrica']);
 
     Route::get('/user', function (Request $request) {
         $user = $request->user();
@@ -49,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
             'seccion' => $user->seccion ?? '',
             'domicilio' => $domicilio,
             'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '',
+            'tiene_rubrica' => ! empty($user->rubrica_path),
+            'tiene_clave_firma' => ! empty($user->clave_firma),
         ]);
     });
 });
