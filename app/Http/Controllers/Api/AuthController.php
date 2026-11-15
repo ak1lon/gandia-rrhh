@@ -46,10 +46,10 @@ class AuthController extends Controller
                 'dni' => $user->dni ?? $legajo?->leg_numdoc ?? '',
                 'cuil' => $legajo?->leg_cuil ?? '',
                 'celular' => $user->celular ?? $registro?->telefono ?? $legajo?->leg_telefono ?? '',
-                'cargo' => $user->cargo_sap ?? 'Repositor de Salón',
-                'seccion' => $user->seccion ?? 'Cordiez Villa Dolores (Suc. 14)',
-                'domicilio' => $domicilio ?? 'Belgrano 245, Villa Dolores, Córdoba',
-                'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '14/03/2018',
+                'cargo' => $user->cargo_sap ?? '',
+                'seccion' => $user->seccion ?? '',
+                'domicilio' => $domicilio ?? '',
+                'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '',
             ],
         ]);
     }

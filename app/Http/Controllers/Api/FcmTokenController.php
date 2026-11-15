@@ -11,20 +11,18 @@ class FcmTokenController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'fcm_token' => 'required|string',
-            'email' => 'required|string',
+            'fcm_token' => 'required|string|max:500',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-        
-        if ($user) {
-            $user->update([
-                'fcm_token' => $request->fcm_token,
-            ]);
-
-            return response()->json(['message' => 'Token actualizado correctamente.']);
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no autenticado.'], 401);
         }
 
-        return response()->json(['message' => 'Usuario no autenticado.'], 401);
+        $user->update([
+            'fcm_token' => $request->string('fcm_token')->toString(),
+        ]);
+
+        return response()->json(['message' => 'Token actualizado correctamente.']);
     }
 }

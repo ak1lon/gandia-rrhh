@@ -29,6 +29,8 @@ class ConfirmarRegistroRequest extends FormRequest
             'acepta_declaracion' => ['accepted'],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')],
             'password' => ['required', 'string', Password::min(8), 'max:72'],
+            'clave_firma' => ['required', 'string', 'regex:/^\d{6}$/', 'different:password'],
+            'rubrica' => ['required', 'string', 'max:2000000'],
         ];
     }
 }

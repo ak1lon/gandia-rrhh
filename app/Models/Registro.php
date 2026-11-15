@@ -17,6 +17,7 @@ class Registro extends Model
         'didit_payload',
         'dni_frente_path',
         'dni_dorso_path',
+        'foto_biometrica_path',
     ];
 
     protected $fillable = [
@@ -31,6 +32,8 @@ class Registro extends Model
         'fecha_nacimiento',
         'dni_frente_path',
         'dni_dorso_path',
+        'foto_biometrica_path',
+        'biometria_validada',
         'didit_request_id',
         'didit_status',
         'didit_payload',
@@ -44,6 +47,7 @@ class Registro extends Model
         return [
             'leg_numero' => 'integer',
             'paso_actual' => 'integer',
+            'biometria_validada' => 'boolean',
             'fecha_nacimiento' => 'date',
             'didit_payload' => 'array',
         ];

@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class RegistroService
@@ -219,9 +220,42 @@ class RegistroService
         ];
     }
 
-    public function confirmar(Registro $registro, string $email, string $password): User
+    public function guardarBiometria(Registro $registro, UploadedFile $foto): Registro
     {
-        return DB::transaction(function () use ($registro, $email, $password): User {
+        $this->asegurarEnCurso($registro);
+
+        if ($registro->didit_status !== 'Approved') {
+            throw ValidationException::withMessages([
+                'dni' => 'Debés completar y aprobar la verificación del DNI antes de cargar la biometría.',
+            ]);
+        }
+
+        $path = $foto->store("registros/{$registro->id}", 'local');
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'foto_biometrica' => 'No se pudo almacenar la imagen biométrica. Intentá nuevamente.',
+            ]);
+        }
+
+        $registro->forceFill([
+            'foto_biometrica_path' => $path,
+            'biometria_validada' => true,
+            'paso_actual' => 5,
+        ])->save();
+
+        return $registro;
+    }
+
+    public function confirmar(
+        Registro $registro,
+        string $email,
+        string $password,
+        string $claveFirma,
+        string $rubricaBase64,
+    ): User {
+        $rubricaBytes = $this->decodificarRubricaPng($rubricaBase64);
+
+        return DB::transaction(function () use ($registro, $email, $password, $claveFirma, $rubricaBytes): User {
             $registro = Registro::query()->lockForUpdate()->findOrFail($registro->getKey());
             $this->asegurarEnCurso($registro);
 
@@ -231,12 +265,19 @@ class RegistroService
                 ]);
             }
 
+            if (! $registro->biometria_validada || empty($registro->foto_biometrica_path)) {
+                throw ValidationException::withMessages([
+                    'biometria' => 'Debés completar la captura biométrica antes de activar la cuenta.',
+                ]);
+            }
+
             $legajo = $this->legajoHabilitado($registro->leg_numero);
 
             $user = User::query()->create([
                 'name' => $legajo->nombre_completo,
                 'email' => mb_strtolower($email),
                 'password' => $password,
+                'clave_firma' => $claveFirma,
                 'role' => 'empleado',
                 'legajo' => (string) $legajo->leg_numero,
                 'leg_numero' => $legajo->leg_numero,
@@ -246,6 +287,10 @@ class RegistroService
                 'celular' => $registro->telefono,
             ]);
 
+            $rubricaPath = "firmas/{$user->id}.png";
+            Storage::disk('local')->put($rubricaPath, $rubricaBytes);
+            $user->forceFill(['rubrica_path' => $rubricaPath])->save();
+
             $registro->forceFill([
                 'email' => $user->email,
                 'estado' => Registro::ESTADO_COMPLETADO,
@@ -254,6 +299,20 @@ class RegistroService
 
             return $user;
         });
+    }
+
+    private function decodificarRubricaPng(string $rawBase64): string
+    {
+        $clean = preg_replace('/^data:image\/png;base64,/i', '', trim($rawBase64)) ?? '';
+        $bytes = base64_decode($clean, true);
+
+        if ($bytes === false || ! str_starts_with($bytes, "\x89PNG\r\n\x1a\n")) {
+            throw ValidationException::withMessages([
+                'rubrica' => 'La rúbrica enviada no es una imagen PNG válida.',
+            ]);
+        }
+
+        return $bytes;
     }
 
     private function legajoHabilitado(int $legNumero): Legajo

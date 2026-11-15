@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Registro\ConfirmarRegistroRequest;
 use App\Http\Requests\Registro\DatosPersonalesRequest;
 use App\Http\Requests\Registro\IniciarRegistroRequest;
+use App\Http\Requests\Registro\SubirBiometriaRequest;
 use App\Http\Requests\Registro\VerificarDocumentoRequest;
 use App\Http\Requests\Registro\VerificarLegajoRequest;
 use App\Models\Legajo;
@@ -75,12 +76,27 @@ class RegistroController extends Controller
         return response()->json($this->registroService->estadoDni($registro));
     }
 
+    public function biometria(SubirBiometriaRequest $request, Registro $registro): JsonResponse
+    {
+        $registro = $this->registroService->guardarBiometria(
+            $registro,
+            $request->file('foto_biometrica'),
+        );
+
+        return response()->json([
+            'paso_actual' => $registro->paso_actual,
+            'biometria_validada' => $registro->biometria_validada,
+        ]);
+    }
+
     public function confirmar(ConfirmarRegistroRequest $request, Registro $registro): JsonResponse
     {
         $this->registroService->confirmar(
             $registro,
             (string) $request->validated('email'),
             (string) $request->validated('password'),
+            (string) $request->validated('clave_firma'),
+            (string) $request->validated('rubrica'),
         );
 
         return response()->json([

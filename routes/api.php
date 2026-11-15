@@ -17,11 +17,13 @@ Route::prefix('v1/registro')->middleware('throttle:20,1')->group(function () {
     Route::post('/{registro}/verificar-dni', [RegistroController::class, 'verificarDocumento'])->whereNumber('registro');
     Route::post('/{registro}/dni', [RegistroController::class, 'verificarDocumento'])->whereNumber('registro');
     Route::get('/{registro}/dni/estado', [RegistroController::class, 'estadoDni'])->whereNumber('registro');
+    Route::post('/{registro}/biometria', [RegistroController::class, 'biometria'])->whereNumber('registro');
     Route::post('/{registro}/confirmar', [RegistroController::class, 'confirmar'])->whereNumber('registro');
 });
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/fcm-token', [FcmTokenController::class, 'store']);
 
     Route::get('/user', function (Request $request) {
         $user = $request->user();
@@ -33,7 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $registro?->localidad ?? $legajo?->leg_locali,
             $registro?->provincia,
         ]);
-        $domicilio = !empty($domicilioPartes) ? implode(', ', $domicilioPartes) : null;
+        $domicilio = !empty($domicilioPartes) ? implode(', ', $domicilioPartes) : '';
 
         return response()->json([
             'id' => $user->id,
@@ -43,13 +45,12 @@ Route::middleware('auth:sanctum')->group(function () {
             'dni' => $user->dni ?? $legajo?->leg_numdoc ?? '',
             'cuil' => $legajo?->leg_cuil ?? '',
             'celular' => $user->celular ?? $registro?->telefono ?? $legajo?->leg_telefono ?? '',
-            'cargo' => $user->cargo_sap ?? 'Repositor de Salón',
-            'seccion' => $user->seccion ?? 'Cordiez Villa Dolores (Suc. 14)',
-            'domicilio' => $domicilio ?? 'Belgrano 245, Villa Dolores, Córdoba',
-            'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '14/03/2018',
+            'cargo' => $user->cargo_sap ?? '',
+            'seccion' => $user->seccion ?? '',
+            'domicilio' => $domicilio,
+            'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '',
         ]);
     });
 });
 
-Route::post('/fcm-token', [FcmTokenController::class, 'store']);
 Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
