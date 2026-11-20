@@ -21,10 +21,26 @@ class NotificationController extends Controller
             return response()->json([]);
         }
 
-        $notifications = PushNotification::whereIn('status', ['Enviado correctamente', 'Enviado con errores'])
+        $notifications = PushNotification::whereIn('status', [
+            PushNotification::STATUS_ENVIADO,
+            PushNotification::STATUS_ENVIADO_ERRORES,
+        ])
             ->whereJsonContains('recipients', (int) $user->id)
-            ->select('id', 'title', 'body', 'reason', 'sender', 'priority', 'image_path', 'notification_date', 'created_at')
-            ->orderBy('created_at', 'desc')
+            ->select(
+                'id',
+                'title',
+                'body',
+                'reason',
+                'sender',
+                'priority',
+                'image_path',
+                'link_url',
+                'action_text',
+                'notification_date',
+                'sent_at',
+                'created_at',
+            )
+            ->orderByRaw('COALESCE(sent_at, created_at) DESC')
             ->get()
             ->map(fn (PushNotification $n) => [
                 'id' => $n->id,
@@ -34,8 +50,11 @@ class NotificationController extends Controller
                 'sender' => $n->sender,
                 'priority' => $n->priority,
                 'image' => $n->image_path ? url(Storage::url($n->image_path)) : null,
+                'link' => $n->link_url,
+                'link_url' => $n->link_url,
+                'action_text' => $n->action_text,
                 'notification_date' => $n->notification_date?->format('Y-m-d'),
-                'created_at' => $n->created_at,
+                'created_at' => $n->sent_at ?? $n->created_at,
             ]);
 
         return response()->json($notifications);

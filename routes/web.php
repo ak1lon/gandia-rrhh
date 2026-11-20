@@ -40,4 +40,13 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/cola-revision', [\App\Http\Controllers\PushNotificationController::class, 'index'])->name('cola-revision.index');
     Route::post('/cola-revision', [\App\Http\Controllers\PushNotificationController::class, 'store'])->name('cola-revision.store');
+    Route::patch('/cola-revision/{notification}/cancelar', [\App\Http\Controllers\PushNotificationController::class, 'cancel'])
+        ->whereNumber('notification')
+        ->name('cola-revision.cancel');
+    Route::post('/cola-revision/{notification}/enviar-ahora', [\App\Http\Controllers\PushNotificationController::class, 'sendNow'])
+        ->whereNumber('notification')
+        ->name('cola-revision.send-now');
+    Route::patch('/cola-revision/{notification}/reprogramar', [\App\Http\Controllers\PushNotificationController::class, 'reschedule'])
+        ->whereNumber('notification')
+        ->name('cola-revision.reschedule');
 });

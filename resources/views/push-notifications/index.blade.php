@@ -15,10 +15,16 @@
                 <span>{{ session('success') }}</span>
             </div>
         @endif
+        @if(session('error'))
+            <div class="bg-[#faebe8] text-[#b3493b] px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#f3d6d2] flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
         @if($errors->any())
             <div class="bg-[#faebe8] text-[#b3493b] px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#f3d6d2] flex items-center gap-2">
                 <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                <span>Por favor completa los campos requeridos.</span>
+                <span>{{ $errors->first() }}</span>
             </div>
         @endif
     </div>
@@ -38,7 +44,7 @@
                     <label class="col-span-3 text-xs font-bold text-[#585f69]">Fecha</label>
                     <div class="col-span-9">
                         <input type="date" name="notification_date" id="notification_date"
-                            value="{{ date('Y-m-d') }}"
+                            value="{{ old('notification_date', date('Y-m-d')) }}"
                             class="w-full sm:w-44 px-3 py-1.5 text-xs font-semibold bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
                     </div>
                 </div>
@@ -50,15 +56,15 @@
                         <div class="relative">
                             <select name="sender" id="senderSelect" required
                                 class="w-full px-3 py-1.5 text-xs font-semibold bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b] appearance-none pr-8">
-                                <option value="" disabled selected>Emisor de la Notificación</option>
+                                <option value="" disabled {{ old('sender') ? '' : 'selected' }}>Emisor de la Notificación</option>
                                 @foreach($emisores as $emisor)
-                                    <option value="{{ $emisor }}">{{ $emisor }}</option>
+                                    <option value="{{ $emisor }}" {{ old('sender') === $emisor ? 'selected' : '' }}>{{ $emisor }}</option>
                                 @endforeach
                             </select>
                             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-2 pointer-events-none"></i>
                         </div>
                         <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" name="sender_show_section" value="1"
+                            <input type="checkbox" name="sender_show_section" value="1" {{ old('sender_show_section') ? 'checked' : '' }}
                                 class="w-3.5 h-3.5 rounded border-[#ede7df] text-[#b3493b] focus:ring-0">
                             <span class="text-[11px] font-semibold text-[#585f69]">Muestra Sección como Emisor</span>
                         </label>
@@ -69,7 +75,7 @@
                 <div class="grid grid-cols-12 items-center gap-2.5">
                     <label class="col-span-3 text-xs font-bold text-[#585f69]">Motivo</label>
                     <div class="col-span-9 relative">
-                        <input list="motivosList" name="reason" id="reasonInput" required placeholder="Seleccionar o escribir motivo..."
+                        <input list="motivosList" name="reason" id="reasonInput" required value="{{ old('reason') }}" placeholder="Seleccionar o escribir motivo..."
                             class="w-full px-3 py-1.5 text-xs font-semibold bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b] pr-8">
                         <datalist id="motivosList">
                             @foreach($motivos as $motivo)
@@ -84,16 +90,17 @@
                 <div class="grid grid-cols-12 items-center gap-2.5">
                     <label class="col-span-3 text-xs font-bold text-[#585f69]">Prioridad</label>
                     <div class="col-span-9 flex items-center gap-5">
+                        @php($oldPriority = old('priority', 'normal'))
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[#585f69]">
-                            <input type="radio" name="priority" value="baja" class="text-[#b3493b] focus:ring-0">
+                            <input type="radio" name="priority" value="baja" {{ $oldPriority === 'baja' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
                             <span>Baja</span>
                         </label>
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[#585f69]">
-                            <input type="radio" name="priority" value="normal" checked class="text-[#b3493b] focus:ring-0">
+                            <input type="radio" name="priority" value="normal" {{ $oldPriority === 'normal' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
                             <span>Normal</span>
                         </label>
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[#585f69]">
-                            <input type="radio" name="priority" value="alta" class="text-[#b3493b] focus:ring-0">
+                            <input type="radio" name="priority" value="alta" {{ $oldPriority === 'alta' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
                             <span class="text-[#b3493b] font-bold">Alta</span>
                         </label>
                     </div>
@@ -195,6 +202,7 @@
                             </div>
                         </div>
                         <div class="max-h-44 overflow-y-auto divide-y divide-[#ede7df] bg-white text-xs" id="recipientsTableBody">
+                            @php($oldRecipients = array_map('intval', old('recipients', [])))
                             @foreach($employees as $employee)
                                 <label class="flex items-center justify-between px-3 py-2 hover:bg-[#fbf8f2] cursor-pointer employee-row"
                                        data-id="{{ $employee->id }}"
@@ -204,6 +212,7 @@
                                        data-seccion="{{ $employee->seccion ?? '' }}">
                                     <div class="flex items-center gap-2 w-20">
                                         <input type="checkbox" name="recipients[]" value="{{ $employee->id }}"
+                                               {{ in_array((int) $employee->id, $oldRecipients, true) ? 'checked' : '' }}
                                                class="recipient-checkbox w-3.5 h-3.5 text-[#b3493b] rounded border-gray-300 focus:ring-0">
                                         <span class="font-mono font-bold text-[#b3493b] text-[10px]">{{ $employee->legajo ?? '-' }}</span>
                                     </div>
@@ -221,18 +230,49 @@
                         </div>
                     </div>
 
-                    <!-- Mensaje / Flyer / Envío -->
+                    <!-- Mensaje / Enlace / Flyer / Programación / Envío -->
                     <div class="pt-2.5 border-t border-[#ede7df] space-y-2.5">
                         <div>
                             <label class="block text-xs font-bold text-[#585f69] mb-1">Mensaje de la Notificación</label>
                             <textarea name="body" id="bodyInput" required rows="2" placeholder="Escribe el mensaje o cuerpo de la notificación..."
-                                class="w-full px-3 py-1.5 text-xs bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]"></textarea>
+                                class="w-full px-3 py-1.5 text-xs bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">{{ old('body') }}</textarea>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-[#585f69]">Enlace opcional (URL)</label>
+                            <input type="url" name="link_url" id="linkUrlInput" value="{{ old('link_url') }}" placeholder="https://ejemplo.com/recurso"
+                                class="w-full px-3 py-1.5 text-xs bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            <div id="actionTextWrapper" class="{{ old('link_url') ? '' : 'hidden' }}">
+                                <input type="text" name="action_text" id="actionTextInput" maxlength="60" value="{{ old('action_text') }}"
+                                    placeholder="Texto del botón (opcional, ej. Abrir enlace)"
+                                    class="w-full px-3 py-1.5 text-xs bg-[#faf7f2] border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-[#585f69] mb-1">Imagen / Flyer para Detalle (Opcional)</label>
                             <input type="file" name="image" id="imageInput" accept="image/*"
                                 class="w-full text-xs text-[#585f69] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-[#faebe8] file:text-[#b3493b] hover:file:bg-[#f5dad4] cursor-pointer">
+                        </div>
+
+                        @php($oldSendMode = old('send_mode', 'now'))
+                        <div class="p-2.5 bg-[#fbf8f2] rounded-xl border border-[#ede7df] space-y-2">
+                            <span class="block text-xs font-bold text-[#585f69]">Momento de envío</span>
+                            <div class="flex items-center gap-5 text-xs font-semibold text-[#585f69]">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="send_mode" value="now" {{ $oldSendMode === 'now' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
+                                    <span>Enviar ahora</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="send_mode" value="schedule" {{ $oldSendMode === 'schedule' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
+                                    <span class="text-[#3730a3] font-bold">Programar para más tarde</span>
+                                </label>
+                            </div>
+                            <div id="scheduleFieldsWrapper" class="{{ $oldSendMode === 'schedule' ? '' : 'hidden' }} space-y-1">
+                                <input type="datetime-local" name="scheduled_at" id="scheduledAtInput" value="{{ old('scheduled_at') }}"
+                                    class="w-full px-3 py-1.5 text-xs font-semibold bg-white border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                <span class="block text-[10px] text-[#707680]">Hora Argentina (ART · UTC-3). Se enviará automáticamente en la fecha elegida.</span>
+                            </div>
                         </div>
 
                         <button type="submit" id="btnSubmitNotification"
@@ -244,7 +284,7 @@
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                             </svg>
-                            <span id="submitBtnText">Enviar Notificación Push (<span id="submitCountLabel">0</span>)</span>
+                            <span id="submitBtnText"><span id="submitActionLabel">{{ $oldSendMode === 'schedule' ? 'Programar' : 'Enviar' }}</span> Notificación Push (<span id="submitCountLabel">0</span>)</span>
                         </button>
                     </div>
                 </div>
@@ -264,13 +304,19 @@
                         <i data-lucide="list-ordered" class="w-3.5 h-3.5 text-[#b3493b]"></i>
                         Cola de Notificaciones
                     </span>
-                    <form method="GET" action="{{ route('cola-revision.index') }}" class="flex items-center gap-2">
+                    <form method="GET" action="{{ route('cola-revision.index') }}" class="flex flex-wrap items-center gap-2">
+                        <select name="q_status" class="px-2.5 py-1 text-xs bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            <option value="" {{ request('q_status') ? '' : 'selected' }}>Todos los estados</option>
+                            <option value="programadas" {{ request('q_status') === 'programadas' ? 'selected' : '' }}>Programadas</option>
+                            <option value="enviadas" {{ request('q_status') === 'enviadas' ? 'selected' : '' }}>Enviadas</option>
+                            <option value="canceladas" {{ request('q_status') === 'canceladas' ? 'selected' : '' }}>Canceladas</option>
+                        </select>
                         <input type="text" name="q_reason" value="{{ request('q_reason') }}" placeholder="Filtrar por motivo..."
                             class="px-2.5 py-1 text-xs bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
                         <button type="submit" class="bg-[#191f26] hover:bg-[#28323c] text-white px-3 py-1 rounded-lg text-xs font-bold transition">
                             Buscar
                         </button>
-                        @if(request()->hasAny(['q_reason', 'q_id', 'q_date']))
+                        @if(request()->hasAny(['q_reason', 'q_id', 'q_date', 'q_status']))
                             <a href="{{ route('cola-revision.index') }}" class="text-xs text-[#b3493b] font-bold hover:underline">Limpiar</a>
                         @endif
                     </form>
@@ -302,6 +348,16 @@
                                 @php
                                     $isSelected = $idx === 0;
                                     $dateFormatted = $n->notification_date ? $n->notification_date->format('d/m/Y') : ($n->created_at ? $n->created_at->format('d/m/Y') : '-');
+                                    $scheduledFormatted = $n->scheduled_at ? $n->scheduled_at->format('d/m/Y H:i') . ' hs' : '';
+                                    $scheduledInputVal = $n->scheduled_at ? $n->scheduled_at->format('Y-m-d\TH:i') : '';
+                                    $sentFormatted = $n->sent_at ? $n->sent_at->format('d/m/Y H:i') . ' hs' : '';
+                                    $isScheduled = $n->estaProgramada();
+                                    $badgeClasses = match ($n->status) {
+                                        \App\Models\PushNotification::STATUS_ENVIADO => 'bg-[#eaf5ef] text-[#2c7a51] border border-[#c1ebd4]',
+                                        \App\Models\PushNotification::STATUS_PROGRAMADA => 'bg-[#eef2ff] text-[#3730a3] border border-[#c7d2fe]',
+                                        \App\Models\PushNotification::STATUS_CANCELADA => 'bg-[#f3f4f6] text-[#6b7280] border border-[#e5e7eb]',
+                                        default => 'bg-[#fff8e6] text-[#b47a09] border border-[#fcefc2]',
+                                    };
                                 @endphp
                                 <tr class="notification-row cursor-pointer transition select-none {{ $isSelected ? 'bg-[#faebe8] font-bold text-[#b3493b]' : 'hover:bg-[#fbf8f2] text-[#2c333e]' }}"
                                     data-id="{{ $n->id }}"
@@ -312,6 +368,15 @@
                                     data-priority="{{ ucfirst($n->priority ?? 'normal') }}"
                                     data-status="{{ $n->status }}"
                                     data-image="{{ $n->image_path ? asset('storage/' . $n->image_path) : '' }}"
+                                    data-link-url="{{ $n->link_url ?? '' }}"
+                                    data-action-text="{{ $n->action_text ?? '' }}"
+                                    data-scheduled-at="{{ $scheduledFormatted }}"
+                                    data-scheduled-at-input="{{ $scheduledInputVal }}"
+                                    data-sent-at="{{ $sentFormatted }}"
+                                    data-is-scheduled="{{ $isScheduled ? '1' : '0' }}"
+                                    data-cancel-url="{{ route('cola-revision.cancel', $n) }}"
+                                    data-send-now-url="{{ route('cola-revision.send-now', $n) }}"
+                                    data-reschedule-url="{{ route('cola-revision.reschedule', $n) }}"
                                     data-recipients-count="{{ is_array($n->recipients) ? count($n->recipients) : 0 }}">
                                     <td class="py-2.5 px-2.5 text-center text-xs indicator-cell font-bold text-[#b3493b]">
                                         {{ $isSelected ? '»' : '>' }}
@@ -320,9 +385,12 @@
                                     <td class="py-2.5 px-3">{{ $dateFormatted }}</td>
                                     <td class="py-2.5 px-3 font-bold uppercase truncate max-w-md">{{ $n->reason ?? $n->title }}</td>
                                     <td class="py-2.5 px-3 text-right">
-                                        <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full {{ $n->status === 'Enviado correctamente' ? 'bg-[#eaf5ef] text-[#2c7a51] border border-[#c1ebd4]' : 'bg-[#fff8e6] text-[#b47a09] border border-[#fcefc2]' }}">
+                                        <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full {{ $badgeClasses }}">
                                             {{ $n->status }}
                                         </span>
+                                        @if($isScheduled && $scheduledFormatted !== '')
+                                            <span class="block text-[9px] text-[#3730a3] font-semibold mt-0.5">{{ $scheduledFormatted }}</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -362,9 +430,17 @@
 
                     <!-- Información de la notificación -->
                     <div id="detailInfoWrapper" class="w-full md:w-1/2 flex flex-col justify-between h-full space-y-2.5 text-xs">
-                        <div>
-                            <span id="detailReason" class="text-xs font-extrabold text-[#191f26] block mb-1"></span>
+                        <div class="space-y-2">
+                            <span id="detailReason" class="text-xs font-extrabold text-[#191f26] block"></span>
                             <p id="detailBody" class="text-[#585f69] font-medium leading-relaxed bg-[#fbf8f2] p-2.5 rounded-xl border border-[#ede7df] max-h-24 overflow-y-auto text-[11px]"></p>
+                            <div id="detailLinkWrapper" class="hidden bg-[#fbf8f2] px-2.5 py-1.5 rounded-xl border border-[#ede7df] flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <i data-lucide="link-2" class="w-3.5 h-3.5 text-[#b3493b] shrink-0"></i>
+                                    <a id="detailLinkAnchor" href="#" target="_blank" rel="noopener noreferrer"
+                                        class="text-[11px] font-semibold text-[#b3493b] underline truncate"></a>
+                                </div>
+                                <span id="detailLinkActionText" class="hidden shrink-0 text-[10px] font-bold bg-[#faebe8] text-[#b3493b] px-2 py-0.5 rounded-md"></span>
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-[10px] pt-2 border-t border-[#ede7df]">
                             <div>
@@ -383,7 +459,49 @@
                                 <span class="text-[#707680] block font-semibold">Destinatarios:</span>
                                 <span id="detailRecipients" class="font-bold text-[#191f26]"></span>
                             </div>
+                            <div id="detailScheduleWrapper" class="col-span-2 hidden">
+                                <span id="detailScheduleLabel" class="text-[#707680] block font-semibold"></span>
+                                <span id="detailScheduleValue" class="font-bold text-[#3730a3]"></span>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Acciones para notificaciones programadas -->
+                <div id="detailScheduledActions" class="hidden mt-3 pt-3 border-t border-[#ede7df] space-y-2">
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        <form id="formSendNow" method="POST" action="" onsubmit="return confirm('¿Enviar esta notificación inmediatamente a todos sus destinatarios?');">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 rounded-xl bg-[#2c7a51] hover:bg-[#236341] text-white text-[11px] font-bold transition inline-flex items-center gap-1.5">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                <span>Enviar ahora</span>
+                            </button>
+                        </form>
+                        <button type="button" id="btnToggleReschedule"
+                            class="px-3 py-1.5 rounded-xl bg-[#eef2ff] hover:bg-[#e0e7ff] text-[#3730a3] border border-[#c7d2fe] text-[11px] font-bold transition inline-flex items-center gap-1.5">
+                            <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
+                            <span>Reprogramar</span>
+                        </button>
+                        <form id="formCancelScheduled" method="POST" action="" onsubmit="return confirm('¿Cancelar el envío programado de esta notificación?');">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="px-3 py-1.5 rounded-xl bg-[#faebe8] hover:bg-[#f5dad4] text-[#b3493b] border border-[#f3d6d2] text-[11px] font-bold transition inline-flex items-center gap-1.5">
+                                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                                <span>Cancelar envío</span>
+                            </button>
+                        </form>
+                    </div>
+                    <div id="rescheduleFormWrapper" class="hidden p-2.5 bg-[#fbf8f2] rounded-xl border border-[#ede7df]">
+                        <form id="formReschedule" method="POST" action="" class="flex flex-wrap items-center gap-2">
+                            @csrf
+                            @method('PATCH')
+                            <label class="text-[11px] font-bold text-[#585f69]">Nueva fecha y hora:</label>
+                            <input type="datetime-local" name="scheduled_at" id="rescheduleInput" required
+                                class="flex-1 min-w-[180px] px-2.5 py-1 text-xs font-semibold bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-[#3730a3] hover:bg-[#2c2585] text-white text-[11px] font-bold transition">
+                                Guardar
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -395,6 +513,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function formatLocalDateTimeInput(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
     // 1. Manejo de selección de filas en la grilla de notificaciones
     const rows = document.querySelectorAll('.notification-row');
     const detailMetaBadge = document.getElementById('detailMetaBadge');
@@ -402,10 +525,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const detailImagePlaceholder = document.getElementById('detailImagePlaceholder');
     const detailReason = document.getElementById('detailReason');
     const detailBody = document.getElementById('detailBody');
+    const detailLinkWrapper = document.getElementById('detailLinkWrapper');
+    const detailLinkAnchor = document.getElementById('detailLinkAnchor');
+    const detailLinkActionText = document.getElementById('detailLinkActionText');
     const detailSender = document.getElementById('detailSender');
     const detailPriority = document.getElementById('detailPriority');
     const detailDate = document.getElementById('detailDate');
     const detailRecipients = document.getElementById('detailRecipients');
+    const detailScheduleWrapper = document.getElementById('detailScheduleWrapper');
+    const detailScheduleLabel = document.getElementById('detailScheduleLabel');
+    const detailScheduleValue = document.getElementById('detailScheduleValue');
+    const detailScheduledActions = document.getElementById('detailScheduledActions');
+    const formSendNow = document.getElementById('formSendNow');
+    const formCancelScheduled = document.getElementById('formCancelScheduled');
+    const formReschedule = document.getElementById('formReschedule');
+    const rescheduleInput = document.getElementById('rescheduleInput');
+    const rescheduleFormWrapper = document.getElementById('rescheduleFormWrapper');
+    const btnToggleReschedule = document.getElementById('btnToggleReschedule');
+
+    if (btnToggleReschedule) {
+        btnToggleReschedule.addEventListener('click', function() {
+            rescheduleInput.min = formatLocalDateTimeInput(new Date());
+            rescheduleFormWrapper.classList.toggle('hidden');
+        });
+    }
 
     function selectNotificationRow(row) {
         rows.forEach(r => {
@@ -429,6 +572,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const status = row.dataset.status;
         const image = row.dataset.image;
         const recCount = row.dataset.recipientsCount;
+        const linkUrl = row.dataset.linkUrl || '';
+        const actionText = row.dataset.actionText || '';
+        const scheduledAt = row.dataset.scheduledAt || '';
+        const scheduledAtInput = row.dataset.scheduledAtInput || '';
+        const sentAt = row.dataset.sentAt || '';
+        const isScheduled = row.dataset.isScheduled === '1';
 
         detailMetaBadge.textContent = `#${id} - ${status}`;
         detailReason.textContent = reason;
@@ -437,6 +586,47 @@ document.addEventListener('DOMContentLoaded', function() {
         detailPriority.textContent = priority;
         detailDate.textContent = date;
         detailRecipients.textContent = `${recCount} personas`;
+
+        if (linkUrl) {
+            detailLinkAnchor.href = linkUrl;
+            detailLinkAnchor.textContent = linkUrl;
+            detailLinkWrapper.classList.remove('hidden');
+            if (actionText) {
+                detailLinkActionText.textContent = actionText;
+                detailLinkActionText.classList.remove('hidden');
+            } else {
+                detailLinkActionText.classList.add('hidden');
+            }
+        } else {
+            detailLinkAnchor.href = '#';
+            detailLinkAnchor.textContent = '';
+            detailLinkWrapper.classList.add('hidden');
+            detailLinkActionText.classList.add('hidden');
+        }
+
+        if (isScheduled && scheduledAt) {
+            detailScheduleLabel.textContent = 'Envío programado para:';
+            detailScheduleValue.textContent = scheduledAt;
+            detailScheduleWrapper.classList.remove('hidden');
+        } else if (sentAt) {
+            detailScheduleLabel.textContent = 'Enviada el:';
+            detailScheduleValue.textContent = sentAt;
+            detailScheduleWrapper.classList.remove('hidden');
+        } else {
+            detailScheduleWrapper.classList.add('hidden');
+        }
+
+        rescheduleFormWrapper.classList.add('hidden');
+        if (isScheduled) {
+            formSendNow.action = row.dataset.sendNowUrl || '';
+            formCancelScheduled.action = row.dataset.cancelUrl || '';
+            formReschedule.action = row.dataset.rescheduleUrl || '';
+            rescheduleInput.value = scheduledAtInput;
+            rescheduleInput.min = formatLocalDateTimeInput(new Date());
+            detailScheduledActions.classList.remove('hidden');
+        } else {
+            detailScheduledActions.classList.add('hidden');
+        }
 
         if (image) {
             detailImage.src = image;
@@ -459,7 +649,36 @@ document.addEventListener('DOMContentLoaded', function() {
         selectNotificationRow(rows[0]);
     }
 
-    // 2. Lógica interactiva de los Filtros de Destinatarios ("Para")
+    // 2. Lógica interactiva de enlace opcional y programación de envío
+    const linkUrlInput = document.getElementById('linkUrlInput');
+    const actionTextWrapper = document.getElementById('actionTextWrapper');
+    const sendModeRadios = document.querySelectorAll('input[name="send_mode"]');
+    const scheduleFieldsWrapper = document.getElementById('scheduleFieldsWrapper');
+    const scheduledAtInput = document.getElementById('scheduledAtInput');
+    const submitActionLabel = document.getElementById('submitActionLabel');
+
+    function syncLinkFields() {
+        const hasLink = (linkUrlInput.value || '').trim().length > 0;
+        actionTextWrapper.classList.toggle('hidden', !hasLink);
+    }
+
+    function syncSendMode() {
+        const checkedRadio = document.querySelector('input[name="send_mode"]:checked');
+        const isSchedule = checkedRadio && checkedRadio.value === 'schedule';
+        scheduleFieldsWrapper.classList.toggle('hidden', !isSchedule);
+        scheduledAtInput.required = isSchedule;
+        if (isSchedule) {
+            scheduledAtInput.min = formatLocalDateTimeInput(new Date());
+        }
+        submitActionLabel.textContent = isSchedule ? 'Programar' : 'Enviar';
+    }
+
+    linkUrlInput.addEventListener('input', syncLinkFields);
+    sendModeRadios.forEach(r => r.addEventListener('change', syncSendMode));
+    syncLinkFields();
+    syncSendMode();
+
+    // 3. Lógica interactiva de los Filtros de Destinatarios ("Para")
     const checkboxes = document.querySelectorAll('.recipient-checkbox');
     const employeeRows = document.querySelectorAll('.employee-row');
     const selectedCountBadge = document.getElementById('selectedCountBadge');
@@ -587,6 +806,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        const checkedMode = document.querySelector('input[name="send_mode"]:checked');
+        const isSchedule = checkedMode && checkedMode.value === 'schedule';
+
+        if (isSchedule) {
+            const scheduledVal = (scheduledAtInput.value || '').trim();
+            if (!scheduledVal || new Date(scheduledVal) <= new Date()) {
+                e.preventDefault();
+                alert('Seleccioná una fecha y hora futura para programar el envío.');
+                return;
+            }
+        }
+
         const btnSubmit = document.getElementById('btnSubmitNotification');
         const iconIdle = document.getElementById('submitIconIdle');
         const spinner = document.getElementById('submitSpinner');
@@ -595,7 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnSubmit.disabled = true;
         iconIdle.classList.add('hidden');
         spinner.classList.remove('hidden');
-        btnText.textContent = 'Enviando notificación...';
+        btnText.textContent = isSchedule ? 'Programando notificación...' : 'Enviando notificación...';
     });
 
     updateSelectedCount();

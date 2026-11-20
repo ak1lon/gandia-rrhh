@@ -61,6 +61,32 @@ class LegajoExtraSeeder extends Seeder
                 ]
             );
         }
+
+        Legajo::updateOrCreate(
+            ['leg_numero' => 100730],
+            [
+                'car_codigo' => 'ADM',
+                'sec_codigo' => 'ADM',
+                'leg_apellido' => 'Herrera',
+                'leg_nombre' => 'Carlos',
+                'leg_tipodoc' => 1,
+                'leg_numdoc' => '27955917',
+                'leg_cuil' => '20279559177',
+                'leg_fecnac' => '1980-03-15',
+                'leg_sexo' => 1,
+                'leg_domic' => 'Av. Colón',
+                'leg_puerta' => '500',
+                'leg_codpos' => '5000',
+                'leg_locali' => 'Córdoba',
+                'leg_prvdom' => 'X',
+                'leg_prvtra' => 'X',
+                'leg_telefono' => '3516426113',
+                'Leg_celular' => '3516426113',
+                'Leg_mail' => 'carlos.herrera@cyre.com.ar',
+                'leg_fecing' => '2018-05-02',
+                'leg_fecegr' => null,
+            ]
+        );
     }
 }
 

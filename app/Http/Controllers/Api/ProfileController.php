@@ -3,17 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Legajo;
 use App\Models\Registro;
+use App\Support\UserPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
+    public function show(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no autenticado.'], 401);
+        }
+
+        return response()->json(UserPayload::format($user));
+    }
+
     public function update(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -59,33 +71,75 @@ class ProfileController extends Controller
         });
 
         $user->refresh();
-        $legajo = $user->leg_numero ? Legajo::find($user->leg_numero) : null;
-        $registro = Registro::where('user_id', $user->id)->latest()->first();
-
-        $domicilioPartes = array_filter([
-            $registro?->domicilio ?? $legajo?->leg_domic,
-            $registro?->localidad ?? $legajo?->leg_locali,
-            $registro?->provincia,
-        ]);
-        $domicilio = ! empty($domicilioPartes) ? implode(', ', $domicilioPartes) : '';
 
         return response()->json([
             'message' => 'Perfil actualizado correctamente',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'legajo' => $user->leg_numero ? (string) $user->leg_numero : ($user->legajo ?? ''),
-                'dni' => $user->dni ?? $legajo?->leg_numdoc ?? '',
-                'cuil' => $legajo?->leg_cuil ?? '',
-                'celular' => $user->celular ?? $registro?->telefono ?? $legajo?->leg_telefono ?? '',
-                'cargo' => $user->cargo_sap ?? '',
-                'seccion' => $user->seccion ?? '',
-                'domicilio' => $domicilio,
-                'fecha_ingreso' => $legajo?->leg_fecing?->format('d/m/Y') ?? '',
-                'tiene_rubrica' => ! empty($user->rubrica_path),
-                'tiene_clave_firma' => ! empty($user->clave_firma),
-            ],
+            'user' => UserPayload::format($user),
+        ]);
+    }
+
+    public function updateFotoPerfil(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no autenticado.'], 401);
+        }
+
+        $request->validate([
+            'foto' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $file = $request->file('foto');
+        if (! $file instanceof UploadedFile) {
+            throw ValidationException::withMessages([
+                'foto' => 'No se recibió una imagen válida.',
+            ]);
+        }
+
+        $ext = $file->extension() ?: 'jpg';
+        $filename = "{$user->id}_" . now()->timestamp . '_' . bin2hex(random_bytes(4)) . ".{$ext}";
+        $newPath = Storage::disk('local')->putFileAs('perfiles', $file, $filename);
+
+        if ($newPath === false) {
+            return response()->json(['message' => 'No se pudo almacenar la foto de perfil.'], 500);
+        }
+
+        $oldPath = $user->foto_perfil_path;
+
+        $user->forceFill([
+            'foto_perfil_path' => $newPath,
+            'foto_perfil_updated_at' => now(),
+        ])->save();
+
+        if (! empty($oldPath) && $oldPath !== $newPath) {
+            Storage::disk('local')->delete($oldPath);
+        }
+
+        $user->refresh();
+
+        return response()->json([
+            'message' => 'Foto de perfil actualizada correctamente',
+            'user' => UserPayload::format($user),
+        ]);
+    }
+
+    public function showFotoPerfil(Request $request): StreamedResponse|JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no autenticado.'], 401);
+        }
+
+        $path = $user->foto_perfil_path;
+        if (empty($path) || ! Storage::disk('local')->exists($path)) {
+            return response()->json(['message' => 'Foto de perfil no encontrada.'], 404);
+        }
+
+        $mimeType = Storage::disk('local')->mimeType($path) ?: 'image/jpeg';
+
+        return Storage::disk('local')->response($path, null, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, max-age=86400',
         ]);
     }
 
