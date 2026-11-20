@@ -274,10 +274,34 @@
                                     <span class="text-[#3730a3] font-bold">Programar para más tarde</span>
                                 </label>
                             </div>
-                            <div id="scheduleFieldsWrapper" class="{{ $oldSendMode === 'schedule' ? '' : 'hidden' }} space-y-1">
-                                <input type="datetime-local" name="scheduled_at" id="scheduledAtInput" value="{{ old('scheduled_at') }}"
-                                    class="w-full px-3 py-1.5 text-xs font-semibold bg-white border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
-                                <span class="block text-[10px] text-[#707680]">Hora Argentina (ART · UTC-3). Se enviará automáticamente en la fecha elegida.</span>
+                            <div id="scheduleFieldsWrapper" class="{{ $oldSendMode === 'schedule' ? '' : 'hidden' }} space-y-1.5">
+                                <input type="hidden" name="scheduled_at" id="scheduledAtInput" value="{{ old('scheduled_at') }}">
+                                <div class="grid grid-cols-12 gap-2">
+                                    <div class="col-span-7">
+                                        <label for="scheduledDateInput" class="block text-[10px] font-bold text-[#585f69] mb-0.5">Fecha</label>
+                                        <input type="date" id="scheduledDateInput" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"
+                                            class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                    </div>
+                                    <div class="col-span-5">
+                                        <label for="scheduledHourInput" class="block text-[10px] font-bold text-[#585f69] mb-0.5">Hora</label>
+                                        <div class="flex items-center gap-1">
+                                            <select id="scheduledHourInput" aria-label="Hora de envío" autocomplete="off" data-lpignore="true"
+                                                class="w-full px-2 py-1.5 text-xs font-semibold bg-white border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                                @for($h = 0; $h < 24; $h++)
+                                                    <option value="{{ str_pad((string) $h, 2, '0', STR_PAD_LEFT) }}">{{ str_pad((string) $h, 2, '0', STR_PAD_LEFT) }}</option>
+                                                @endfor
+                                            </select>
+                                            <span class="text-xs font-bold text-[#585f69]">:</span>
+                                            <select id="scheduledMinuteInput" aria-label="Minutos de envío" autocomplete="off" data-lpignore="true"
+                                                class="w-full px-2 py-1.5 text-xs font-semibold bg-white border border-[#ede7df] rounded-xl text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                                @for($m = 0; $m < 60; $m++)
+                                                    <option value="{{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}">{{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}</option>
+                                                @endfor
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="block text-[10px] text-[#707680]">Hora Argentina (ART · UTC-3). Mínimo 1 minuto posterior a la hora actual.</span>
                             </div>
                         </div>
 
@@ -501,9 +525,25 @@
                         <form id="formReschedule" method="POST" action="" class="flex flex-wrap items-center gap-2">
                             @csrf
                             @method('PATCH')
-                            <label class="text-[11px] font-bold text-[#585f69]">Nueva fecha y hora:</label>
-                            <input type="datetime-local" name="scheduled_at" id="rescheduleInput" required
-                                class="flex-1 min-w-[180px] px-2.5 py-1 text-xs font-semibold bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            <input type="hidden" name="scheduled_at" id="rescheduleInput">
+                            <label for="rescheduleDateInput" class="text-[11px] font-bold text-[#585f69]">Nueva fecha y hora:</label>
+                            <input type="date" id="rescheduleDateInput" required autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"
+                                class="px-2.5 py-1 text-xs font-semibold bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                            <div class="flex items-center gap-1">
+                                <select id="rescheduleHourInput" aria-label="Nueva hora" autocomplete="off" data-lpignore="true"
+                                    class="px-2 py-1 text-xs font-semibold bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                    @for($h = 0; $h < 24; $h++)
+                                        <option value="{{ str_pad((string) $h, 2, '0', STR_PAD_LEFT) }}">{{ str_pad((string) $h, 2, '0', STR_PAD_LEFT) }}</option>
+                                    @endfor
+                                </select>
+                                <span class="text-xs font-bold text-[#585f69]">:</span>
+                                <select id="rescheduleMinuteInput" aria-label="Nuevos minutos" autocomplete="off" data-lpignore="true"
+                                    class="px-2 py-1 text-xs font-semibold bg-white border border-[#ede7df] rounded-lg text-[#191f26] focus:outline-none focus:border-[#b3493b]">
+                                    @for($m = 0; $m < 60; $m++)
+                                        <option value="{{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}">{{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}</option>
+                                    @endfor
+                                </select>
+                            </div>
                             <button type="submit" class="px-3 py-1.5 rounded-lg bg-[#3730a3] hover:bg-[#2c2585] text-white text-[11px] font-bold transition">
                                 Guardar
                             </button>
@@ -519,9 +559,78 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    function formatLocalDateTimeInput(date) {
-        const pad = n => String(n).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const pad = n => String(n).padStart(2, '0');
+
+    function getMinScheduleDate() {
+        const d = new Date();
+        d.setSeconds(0, 0);
+        d.setMinutes(d.getMinutes() + 1);
+        return d;
+    }
+
+    function formatDatePart(date) {
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function parseLocalDateTime(value) {
+        const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec((value || '').trim());
+        if (!match) return null;
+        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), 0, 0);
+    }
+
+    function createDateTimePicker({ hiddenInput, dateInput, hourSelect, minuteSelect }) {
+        function sync(preferredValue = null) {
+            const minDate = getMinScheduleDate();
+            const minDateStr = formatDatePart(minDate);
+            const minHour = minDate.getHours();
+            const minMinute = minDate.getMinutes();
+
+            dateInput.min = minDateStr;
+
+            const parsed = preferredValue ? parseLocalDateTime(preferredValue) : null;
+            if (parsed) {
+                dateInput.value = formatDatePart(parsed);
+                hourSelect.value = pad(parsed.getHours());
+                minuteSelect.value = pad(parsed.getMinutes());
+            } else if (!dateInput.value) {
+                dateInput.value = minDateStr;
+                hourSelect.value = pad(minHour);
+                minuteSelect.value = pad(minMinute);
+            }
+
+            if (dateInput.value < minDateStr) {
+                dateInput.value = minDateStr;
+            }
+
+            const isMinDay = dateInput.value === minDateStr;
+            Array.from(hourSelect.options).forEach(opt => {
+                opt.disabled = isMinDay && Number(opt.value) < minHour;
+            });
+            if (isMinDay && Number(hourSelect.value) < minHour) {
+                hourSelect.value = pad(minHour);
+            }
+
+            const isMinHour = isMinDay && Number(hourSelect.value) === minHour;
+            Array.from(minuteSelect.options).forEach(opt => {
+                opt.disabled = isMinHour && Number(opt.value) < minMinute;
+            });
+            if (isMinHour && Number(minuteSelect.value) < minMinute) {
+                minuteSelect.value = pad(minMinute);
+            }
+
+            hiddenInput.value = `${dateInput.value}T${hourSelect.value}:${minuteSelect.value}`;
+        }
+
+        function isValid() {
+            const selected = parseLocalDateTime(hiddenInput.value);
+            return selected !== null && selected >= getMinScheduleDate();
+        }
+
+        dateInput.addEventListener('change', () => sync());
+        hourSelect.addEventListener('change', () => sync());
+        minuteSelect.addEventListener('change', () => sync());
+
+        return { sync, isValid };
     }
 
     // 1. Manejo de selección de filas en la grilla de notificaciones
@@ -549,10 +658,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const rescheduleFormWrapper = document.getElementById('rescheduleFormWrapper');
     const btnToggleReschedule = document.getElementById('btnToggleReschedule');
 
+    const reschedulePicker = createDateTimePicker({
+        hiddenInput: rescheduleInput,
+        dateInput: document.getElementById('rescheduleDateInput'),
+        hourSelect: document.getElementById('rescheduleHourInput'),
+        minuteSelect: document.getElementById('rescheduleMinuteInput'),
+    });
+
     if (btnToggleReschedule) {
         btnToggleReschedule.addEventListener('click', function() {
-            rescheduleInput.min = formatLocalDateTimeInput(new Date());
+            reschedulePicker.sync(rescheduleInput.value || null);
             rescheduleFormWrapper.classList.toggle('hidden');
+        });
+    }
+
+    if (formReschedule) {
+        formReschedule.addEventListener('submit', function(e) {
+            if (!reschedulePicker.isValid()) {
+                e.preventDefault();
+                reschedulePicker.sync();
+                alert('La fecha y hora debe ser al menos 1 minuto posterior a la hora actual.');
+            }
         });
     }
 
@@ -627,8 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formSendNow.action = row.dataset.sendNowUrl || '';
             formCancelScheduled.action = row.dataset.cancelUrl || '';
             formReschedule.action = row.dataset.rescheduleUrl || '';
-            rescheduleInput.value = scheduledAtInput;
-            rescheduleInput.min = formatLocalDateTimeInput(new Date());
+            reschedulePicker.sync(scheduledAtInput || null);
             detailScheduledActions.classList.remove('hidden');
         } else {
             detailScheduledActions.classList.add('hidden');
@@ -663,6 +788,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const scheduledAtInput = document.getElementById('scheduledAtInput');
     const submitActionLabel = document.getElementById('submitActionLabel');
 
+    const scheduledDateInput = document.getElementById('scheduledDateInput');
+    const schedulePicker = createDateTimePicker({
+        hiddenInput: scheduledAtInput,
+        dateInput: scheduledDateInput,
+        hourSelect: document.getElementById('scheduledHourInput'),
+        minuteSelect: document.getElementById('scheduledMinuteInput'),
+    });
+
     function syncLinkFields() {
         const hasLink = (linkUrlInput.value || '').trim().length > 0;
         actionTextWrapper.classList.toggle('hidden', !hasLink);
@@ -672,9 +805,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkedRadio = document.querySelector('input[name="send_mode"]:checked');
         const isSchedule = checkedRadio && checkedRadio.value === 'schedule';
         scheduleFieldsWrapper.classList.toggle('hidden', !isSchedule);
-        scheduledAtInput.required = isSchedule;
+        scheduledDateInput.required = isSchedule;
         if (isSchedule) {
-            scheduledAtInput.min = formatLocalDateTimeInput(new Date());
+            schedulePicker.sync(scheduledAtInput.value || null);
         }
         submitActionLabel.textContent = isSchedule ? 'Programar' : 'Enviar';
     }
@@ -816,10 +949,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const isSchedule = checkedMode && checkedMode.value === 'schedule';
 
         if (isSchedule) {
-            const scheduledVal = (scheduledAtInput.value || '').trim();
-            if (!scheduledVal || new Date(scheduledVal) <= new Date()) {
+            if (!schedulePicker.isValid()) {
                 e.preventDefault();
-                alert('Seleccioná una fecha y hora futura para programar el envío.');
+                schedulePicker.sync();
+                alert('Seleccioná una fecha y hora al menos 1 minuto posterior a la hora actual.');
                 return;
             }
         }
