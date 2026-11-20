@@ -65,6 +65,11 @@ class PushNotificationDispatcher
 
             if (! ($response['success'] ?? false)) {
                 $hasErrors = true;
+                Log::warning('Error al enviar notificación push por FCM', [
+                    'notification_id' => $notification->id,
+                    'user_id' => $user->id,
+                    'error' => $response['error'] ?? 'Error desconocido',
+                ]);
             }
         }
 

@@ -388,6 +388,18 @@
                                         \App\Models\PushNotification::STATUS_CANCELADA => 'bg-[#f3f4f6] text-[#6b7280] border border-[#e5e7eb]',
                                         default => 'bg-[#fff8e6] text-[#b47a09] border border-[#fcefc2]',
                                     };
+                                    $errorDetails = [];
+                                    if (is_array($n->firebase_responses)) {
+                                        if (isset($n->firebase_responses['error']) && is_string($n->firebase_responses['error'])) {
+                                            $errorDetails[] = $n->firebase_responses['error'];
+                                        } else {
+                                            foreach ($n->firebase_responses as $uid => $resp) {
+                                                if (is_array($resp) && ! ($resp['success'] ?? false) && ! empty($resp['error'])) {
+                                                    $errorDetails[] = 'Usuario #' . $uid . ': ' . (string) $resp['error'];
+                                                }
+                                            }
+                                        }
+                                    }
                                 @endphp
                                 <tr class="notification-row cursor-pointer transition select-none {{ $isSelected ? 'bg-[#faebe8] font-bold text-[#b3493b]' : 'hover:bg-[#fbf8f2] text-[#2c333e]' }}"
                                     data-id="{{ $n->id }}"
@@ -407,6 +419,7 @@
                                     data-cancel-url="{{ route('cola-revision.cancel', $n) }}"
                                     data-send-now-url="{{ route('cola-revision.send-now', $n) }}"
                                     data-reschedule-url="{{ route('cola-revision.reschedule', $n) }}"
+                                    data-errors="{{ json_encode($errorDetails, JSON_UNESCAPED_UNICODE) }}"
                                     data-recipients-count="{{ is_array($n->recipients) ? count($n->recipients) : 0 }}">
                                     <td class="py-2.5 px-2.5 text-center text-xs indicator-cell font-bold text-[#b3493b]">
                                         {{ $isSelected ? '»' : '>' }}
@@ -437,8 +450,8 @@
 
 
             <!-- PANEL INFERIOR: DETALLE Y VISOR DE FLYER / IMAGEN -->
-            <div class="bg-white rounded-2xl border border-[#ede7df] shadow-sm p-4 flex flex-col flex-1">
-                <div class="flex items-center justify-between pb-2 mb-2.5 border-b border-[#ede7df]">
+            <div class="bg-white rounded-2xl border border-[#ede7df] shadow-sm p-4 flex flex-col">
+                <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#ede7df]">
                     <h3 class="text-xs font-extrabold text-[#585f69] uppercase tracking-wider flex items-center gap-1.5">
                         <i data-lucide="eye" class="w-3.5 h-3.5 text-[#b3493b]"></i>
                         Detalle
@@ -448,10 +461,10 @@
                     </div>
                 </div>
 
-                <div id="detailContainer" class="flex-1 flex flex-col md:flex-row gap-4 items-center justify-center p-1 min-h-[190px]">
+                <div id="detailContainer" class="flex flex-col md:flex-row gap-4 items-start">
                     <!-- Flyer / Imagen -->
-                    <div id="detailImageWrapper" class="w-full md:w-1/2 flex items-center justify-center bg-[#191f26] rounded-xl overflow-hidden p-2 shadow-sm min-h-[170px]">
-                        <img id="detailImage" src="" alt="Flyer de la notificación" class="max-h-[190px] w-auto object-contain rounded-lg hidden">
+                    <div id="detailImageWrapper" class="w-full md:w-5/12 flex items-center justify-center bg-[#191f26] rounded-xl overflow-hidden p-2 shadow-sm min-h-[170px] max-h-[240px]">
+                        <img id="detailImage" src="" alt="Flyer de la notificación" class="max-h-[220px] w-auto object-contain rounded-lg hidden">
                         <div id="detailImagePlaceholder" class="flex flex-col items-center justify-center text-gray-400 p-4 text-center">
                             <i data-lucide="image" class="w-8 h-8 mb-1.5 opacity-40"></i>
                             <span class="text-[11px] font-semibold text-gray-400">Sin imagen adjunta</span>
@@ -459,7 +472,7 @@
                     </div>
 
                     <!-- Información de la notificación -->
-                    <div id="detailInfoWrapper" class="w-full md:w-1/2 flex flex-col justify-between h-full space-y-2.5 text-xs">
+                    <div id="detailInfoWrapper" class="w-full md:w-7/12 flex flex-col gap-3 text-xs">
                         <div class="space-y-2">
                             <span id="detailReason" class="text-xs font-extrabold text-[#191f26] block"></span>
                             <p id="detailBody" class="text-[#585f69] font-medium leading-relaxed bg-[#fbf8f2] p-2.5 rounded-xl border border-[#ede7df] max-h-24 overflow-y-auto text-[11px]"></p>
@@ -471,8 +484,15 @@
                                 </div>
                                 <span id="detailLinkActionText" class="hidden shrink-0 text-[10px] font-bold bg-[#faebe8] text-[#b3493b] px-2 py-0.5 rounded-md"></span>
                             </div>
+                            <div id="detailErrorWrapper" class="hidden bg-[#faebe8] px-2.5 py-2 rounded-xl border border-[#f3d6d2] space-y-1">
+                                <div class="flex items-center gap-1.5 text-[10px] font-extrabold text-[#b3493b] uppercase tracking-wide">
+                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i>
+                                    <span>Detalle del error de envío</span>
+                                </div>
+                                <ul id="detailErrorList" class="text-[11px] font-medium text-[#8f3428] space-y-0.5 list-disc list-inside max-h-24 overflow-y-auto break-words"></ul>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-[10px] pt-2 border-t border-[#ede7df]">
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] pt-2.5 border-t border-[#ede7df]">
                             <div>
                                 <span class="text-[#707680] block font-semibold">Emisor:</span>
                                 <span id="detailSender" class="font-bold text-[#191f26]"></span>
@@ -660,6 +680,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const detailLinkWrapper = document.getElementById('detailLinkWrapper');
     const detailLinkAnchor = document.getElementById('detailLinkAnchor');
     const detailLinkActionText = document.getElementById('detailLinkActionText');
+    const detailErrorWrapper = document.getElementById('detailErrorWrapper');
+    const detailErrorList = document.getElementById('detailErrorList');
     const detailSender = document.getElementById('detailSender');
     const detailPriority = document.getElementById('detailPriority');
     const detailDate = document.getElementById('detailDate');
@@ -751,6 +773,28 @@ document.addEventListener('DOMContentLoaded', function() {
             detailLinkAnchor.textContent = '';
             detailLinkWrapper.classList.add('hidden');
             detailLinkActionText.classList.add('hidden');
+        }
+
+        let errorMessages = [];
+        try {
+            const parsedErrors = JSON.parse(row.dataset.errors || '[]');
+            if (Array.isArray(parsedErrors)) {
+                errorMessages = parsedErrors;
+            }
+        } catch (_) {
+            errorMessages = [];
+        }
+
+        detailErrorList.innerHTML = '';
+        if (errorMessages.length > 0) {
+            errorMessages.forEach(msg => {
+                const li = document.createElement('li');
+                li.textContent = msg;
+                detailErrorList.appendChild(li);
+            });
+            detailErrorWrapper.classList.remove('hidden');
+        } else {
+            detailErrorWrapper.classList.add('hidden');
         }
 
         if (isScheduled && scheduledAt) {
