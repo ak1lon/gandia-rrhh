@@ -52,8 +52,10 @@ class PushNotificationDispatcher
         $hasErrors = false;
 
         foreach ($users as $user) {
+            $token = (string) $user->fcm_token;
+
             $response = $this->firebaseService->sendToDevice(
-                (string) $user->fcm_token,
+                $token,
                 (string) $notification->title,
                 (string) $notification->body,
                 $fullImageUrl,
@@ -65,9 +67,18 @@ class PushNotificationDispatcher
 
             if (! ($response['success'] ?? false)) {
                 $hasErrors = true;
+
+                if (($response['invalid_token'] ?? false) === true) {
+                    User::query()
+                        ->whereKey($user->id)
+                        ->where('fcm_token', $token)
+                        ->update(['fcm_token' => null]);
+                }
+
                 Log::warning('Error al enviar notificación push por FCM', [
                     'notification_id' => $notification->id,
                     'user_id' => $user->id,
+                    'invalid_token' => (bool) ($response['invalid_token'] ?? false),
                     'error' => $response['error'] ?? 'Error desconocido',
                 ]);
             }

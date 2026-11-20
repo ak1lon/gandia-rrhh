@@ -385,4 +385,50 @@ class ScheduledPushNotificationTest extends TestCase
         $this->assertSame('Responder encuesta', $items[0]['action_text']);
         $this->assertSame($enviadaAyer->id, $items[1]['id']);
     }
+
+    public function test_limpia_fcm_token_solo_cuando_firebase_reporta_token_invalido(): void
+    {
+        [$admin, $empleadoInvalido] = $this->crearAdminYEmpleado();
+        $empleadoTemporal = User::factory()->create([
+            'role' => 'empleado',
+            'email' => 'empleado2@cyre.com.ar',
+            'fcm_token' => 'fcm-token-empleado-2',
+        ]);
+
+        $mock = Mockery::mock(FirebaseNotificationService::class);
+        $mock->shouldReceive('sendToDevice')
+            ->once()
+            ->with('fcm-token-empleado-1', Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn([
+                'success' => false,
+                'error' => 'NotRegistered',
+                'invalid_token' => true,
+            ]);
+        $mock->shouldReceive('sendToDevice')
+            ->once()
+            ->with('fcm-token-empleado-2', Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn([
+                'success' => false,
+                'error' => 'Temporary server error',
+                'invalid_token' => false,
+            ]);
+
+        $this->app->instance(FirebaseNotificationService::class, $mock);
+
+        $this->actingAs($admin)
+            ->post('/cola-revision', [
+                'reason' => 'AVISO',
+                'body' => 'Prueba token inválido',
+                'sender' => 'RRHH Gandia',
+                'priority' => 'normal',
+                'send_mode' => 'now',
+                'recipients' => [$empleadoInvalido->id, $empleadoTemporal->id],
+            ])
+            ->assertRedirect(route('cola-revision.index'));
+
+        $notification = PushNotification::query()->firstOrFail();
+        $this->assertSame(PushNotification::STATUS_ENVIADO_ERRORES, $notification->status);
+        $this->assertNull($empleadoInvalido->fresh()?->fcm_token);
+        $this->assertSame('fcm-token-empleado-2', $empleadoTemporal->fresh()?->fcm_token);
+    }
 }

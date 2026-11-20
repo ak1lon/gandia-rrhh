@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\ApnsConfig;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -53,8 +54,23 @@ class FirebaseNotificationService
         try {
             $this->messaging->send($message);
             return ['success' => true];
+        } catch (NotFound $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'invalid_token' => true,
+            ];
         } catch (\Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            $errorMessage = $e->getMessage();
+            $isInvalidToken = str_contains($errorMessage, 'NotRegistered')
+                || str_contains($errorMessage, 'UNREGISTERED')
+                || str_contains($errorMessage, 'Requested entity was not found');
+
+            return [
+                'success' => false,
+                'error' => $errorMessage,
+                'invalid_token' => $isInvalidToken,
+            ];
         }
     }
 }
