@@ -560,70 +560,87 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const pad = n => String(n).padStart(2, '0');
+    const ARG_TIMEZONE = 'America/Argentina/Buenos_Aires';
+    const argPartsFormatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: ARG_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    });
 
-    function getMinScheduleDate() {
-        const d = new Date();
-        d.setSeconds(0, 0);
-        d.setMinutes(d.getMinutes() + 1);
-        return d;
+    function getMinScheduleParts() {
+        const nextMinuteInstant = new Date(Math.floor(Date.now() / 60000) * 60000 + 60000);
+        const parts = {};
+        argPartsFormatter.formatToParts(nextMinuteInstant).forEach(p => {
+            if (p.type !== 'literal') parts[p.type] = p.value;
+        });
+        const dateStr = `${parts.year}-${parts.month}-${parts.day}`;
+        const hour = Number(parts.hour);
+        const minute = Number(parts.minute);
+        return {
+            dateStr,
+            hour,
+            minute,
+            isoStr: `${dateStr}T${pad(hour)}:${pad(minute)}`,
+        };
     }
 
-    function formatDatePart(date) {
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-    }
-
-    function parseLocalDateTime(value) {
-        const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec((value || '').trim());
+    function parseDateTimeParts(value) {
+        const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec((value || '').trim());
         if (!match) return null;
-        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), 0, 0);
+        return {
+            dateStr: match[1],
+            hour: match[2],
+            minute: match[3],
+        };
     }
 
     function createDateTimePicker({ hiddenInput, dateInput, hourSelect, minuteSelect }) {
         function sync(preferredValue = null) {
-            const minDate = getMinScheduleDate();
-            const minDateStr = formatDatePart(minDate);
-            const minHour = minDate.getHours();
-            const minMinute = minDate.getMinutes();
+            const min = getMinScheduleParts();
 
-            dateInput.min = minDateStr;
+            dateInput.min = min.dateStr;
 
-            const parsed = preferredValue ? parseLocalDateTime(preferredValue) : null;
+            const parsed = preferredValue ? parseDateTimeParts(preferredValue) : null;
             if (parsed) {
-                dateInput.value = formatDatePart(parsed);
-                hourSelect.value = pad(parsed.getHours());
-                minuteSelect.value = pad(parsed.getMinutes());
+                dateInput.value = parsed.dateStr;
+                hourSelect.value = parsed.hour;
+                minuteSelect.value = parsed.minute;
             } else if (!dateInput.value) {
-                dateInput.value = minDateStr;
-                hourSelect.value = pad(minHour);
-                minuteSelect.value = pad(minMinute);
+                dateInput.value = min.dateStr;
+                hourSelect.value = pad(min.hour);
+                minuteSelect.value = pad(min.minute);
             }
 
-            if (dateInput.value < minDateStr) {
-                dateInput.value = minDateStr;
+            if (dateInput.value < min.dateStr) {
+                dateInput.value = min.dateStr;
             }
 
-            const isMinDay = dateInput.value === minDateStr;
+            const isMinDay = dateInput.value === min.dateStr;
             Array.from(hourSelect.options).forEach(opt => {
-                opt.disabled = isMinDay && Number(opt.value) < minHour;
+                opt.disabled = isMinDay && Number(opt.value) < min.hour;
             });
-            if (isMinDay && Number(hourSelect.value) < minHour) {
-                hourSelect.value = pad(minHour);
+            if (isMinDay && Number(hourSelect.value) < min.hour) {
+                hourSelect.value = pad(min.hour);
             }
 
-            const isMinHour = isMinDay && Number(hourSelect.value) === minHour;
+            const isMinHour = isMinDay && Number(hourSelect.value) === min.hour;
             Array.from(minuteSelect.options).forEach(opt => {
-                opt.disabled = isMinHour && Number(opt.value) < minMinute;
+                opt.disabled = isMinHour && Number(opt.value) < min.minute;
             });
-            if (isMinHour && Number(minuteSelect.value) < minMinute) {
-                minuteSelect.value = pad(minMinute);
+            if (isMinHour && Number(minuteSelect.value) < min.minute) {
+                minuteSelect.value = pad(min.minute);
             }
 
             hiddenInput.value = `${dateInput.value}T${hourSelect.value}:${minuteSelect.value}`;
         }
 
         function isValid() {
-            const selected = parseLocalDateTime(hiddenInput.value);
-            return selected !== null && selected >= getMinScheduleDate();
+            const val = (hiddenInput.value || '').trim();
+            return parseDateTimeParts(val) !== null && val >= getMinScheduleParts().isoStr;
         }
 
         dateInput.addEventListener('change', () => sync());
