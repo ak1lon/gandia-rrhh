@@ -90,7 +90,9 @@
                 <div class="grid grid-cols-12 items-center gap-2.5">
                     <label class="col-span-3 text-xs font-bold text-[#585f69]">Prioridad</label>
                     <div class="col-span-9 flex items-center gap-5">
-                        @php($oldPriority = old('priority', 'normal'))
+                        @php
+                            $oldPriority = old('priority', 'normal');
+                        @endphp
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[#585f69]">
                             <input type="radio" name="priority" value="baja" {{ $oldPriority === 'baja' ? 'checked' : '' }} class="text-[#b3493b] focus:ring-0">
                             <span>Baja</span>
@@ -202,7 +204,9 @@
                             </div>
                         </div>
                         <div class="max-h-44 overflow-y-auto divide-y divide-[#ede7df] bg-white text-xs" id="recipientsTableBody">
-                            @php($oldRecipients = array_map('intval', old('recipients', [])))
+                            @php
+                                $oldRecipients = array_map('intval', old('recipients', []));
+                            @endphp
                             @foreach($employees as $employee)
                                 <label class="flex items-center justify-between px-3 py-2 hover:bg-[#fbf8f2] cursor-pointer employee-row"
                                        data-id="{{ $employee->id }}"
@@ -255,7 +259,9 @@
                                 class="w-full text-xs text-[#585f69] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-[#faebe8] file:text-[#b3493b] hover:file:bg-[#f5dad4] cursor-pointer">
                         </div>
 
-                        @php($oldSendMode = old('send_mode', 'now'))
+                        @php
+                            $oldSendMode = old('send_mode', 'now');
+                        @endphp
                         <div class="p-2.5 bg-[#fbf8f2] rounded-xl border border-[#ede7df] space-y-2">
                             <span class="block text-xs font-bold text-[#585f69]">Momento de envío</span>
                             <div class="flex items-center gap-5 text-xs font-semibold text-[#585f69]">
